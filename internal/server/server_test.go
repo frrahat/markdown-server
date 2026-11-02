@@ -133,13 +133,17 @@ func newTestServerWithRoot(t *testing.T, files map[string]string) (*Server, stri
 	if err != nil {
 		t.Fatal(err)
 	}
-	return New(Config{
+	srv, err := New(Config{
 		RootDir:      root,
 		IndexHolder:  holder,
 		Renderer:     render.New(render.Options{}),
 		MaxFileBytes: 1 << 10,
 		Logger:       discardLogger,
-	}), root
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return srv, root
 }
 
 func newRequest(target string) *http.Request {

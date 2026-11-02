@@ -58,6 +58,17 @@ func run(args []string, stderr io.Writer) error {
 	logger.Info("indexed", "root", cfg.rootDir, "files", idx.FileCount, "dirs", idx.DirCount,
 		"duration", time.Since(scanStart).Round(time.Millisecond))
 
+	handler, err := server.New(server.Config{
+		RootDir:      cfg.rootDir,
+		IndexHolder:  indexHolder,
+		Renderer:     render.New(render.Options{MarkdownExtensions: cfg.extensions, UnsafeHTML: cfg.unsafeHTML}),
+		MaxFileBytes: cfg.maxFileBytes,
+		Logger:       logger,
+	})
+	if err != nil {
+		return err
+	}
+
 	// Listen before announcing the URL so a port conflict is reported instead
 	// of a URL that doesn't work.
 	listener, err := net.Listen("tcp", cfg.listenAddr)
@@ -65,13 +76,7 @@ func run(args []string, stderr io.Writer) error {
 		return err
 	}
 	httpServer := &http.Server{
-		Handler: server.New(server.Config{
-			RootDir:      cfg.rootDir,
-			IndexHolder:  indexHolder,
-			Renderer:     render.New(render.Options{MarkdownExtensions: cfg.extensions, UnsafeHTML: cfg.unsafeHTML}),
-			MaxFileBytes: cfg.maxFileBytes,
-			Logger:       logger,
-		}),
+		Handler:           handler,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	logger.Info("serving", "url", "http://"+listener.Addr().String())

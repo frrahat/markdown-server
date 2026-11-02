@@ -121,6 +121,10 @@ paths get `400`, and paths that are missing or not indexed get `404`.
   - other relative files become `/raw/<resolved>`
   - absolute URLs and `#anchor`-only links are left alone. External links get
     `target="_blank" rel="noopener"`.
+- Relative URLs in **raw HTML** (`<img src="docs/logo.png">`, `<a href>`) are not
+  rewritten by the server. The frontend resolves them against the document's
+  directory before inserting the HTML, so it works with or without
+  `-unsafe-html`.
 - ```` ```mermaid ```` blocks are emitted as `<pre class="mermaid">` without
   highlighting. Client-side mermaid renders them after each load, with
   `securityLevel: 'strict'` so diagram labels can't inject HTML.

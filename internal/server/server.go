@@ -27,10 +27,11 @@ type Server struct {
 	renderer     *render.Renderer
 	maxFileBytes int64
 	logger       *slog.Logger
+	staticAssets *staticAssets
 	mux          *http.ServeMux
 }
 
-func New(cfg Config) *Server {
+func New(cfg Config) (*Server, error) {
 	s := &Server{
 		rootDir:      cfg.RootDir,
 		indexHolder:  cfg.IndexHolder,
@@ -42,10 +43,16 @@ func New(cfg Config) *Server {
 	if s.logger == nil {
 		s.logger = slog.Default()
 	}
+	assets, err := loadStaticAssets()
+	if err != nil {
+		return nil, err
+	}
+	s.staticAssets = assets
 	s.mux.HandleFunc("GET /api/tree", s.handleTree)
 	s.mux.HandleFunc("GET /api/doc", s.handleDoc)
 	s.mux.HandleFunc("GET /raw/{path...}", s.handleRaw)
-	return s
+	s.mux.HandleFunc("GET /", s.handleStatic)
+	return s, nil
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {

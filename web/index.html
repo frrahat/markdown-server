@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>mdserver</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/chroma.css">
+  <!-- Deferred classic and module scripts run in document order, so mermaid
+       is defined before app.js starts. -->
+  <script src="/vendor/mermaid.min.js" defer></script>
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <header class="toolbar">
+    <span class="brand">mdserver</span>
+    <button type="button" id="refresh-tree" title="Rescan the directory for added or removed files">Refresh tree</button>
+    <span id="doc-path" class="doc-path"></span>
+    <span id="status" class="status" role="status" aria-live="polite"></span>
+    <button type="button" id="reload-doc" title="Re-read the current file from disk" disabled>Reload</button>
+  </header>
+  <div class="layout">
+    <nav class="sidebar" aria-label="Files">
+      <ul id="tree" class="tree" role="tree" aria-label="Markdown files"></ul>
+    </nav>
+    <main id="content" class="content">
+      <article id="doc" class="markdown-body">
+        <p class="placeholder">Select a file from the tree.</p>
+      </article>
+    </main>
+  </div>
+</body>
+</html>
