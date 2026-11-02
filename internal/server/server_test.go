@@ -162,9 +162,14 @@ func doGet(t *testing.T, srv *Server, target string, wantStatus int, decodeInto 
 		t.Fatalf("GET %s: status %d, want %d; body %s", target, recorder.Code, wantStatus, recorder.Body)
 	}
 	if decodeInto != nil {
-		if err := json.Unmarshal(recorder.Body.Bytes(), decodeInto); err != nil {
-			t.Fatalf("GET %s: decode: %v", target, err)
-		}
+		decodeJSON(t, recorder, decodeInto)
 	}
 	return recorder.Result()
+}
+
+func decodeJSON(t *testing.T, recorder *httptest.ResponseRecorder, decodeInto any) {
+	t.Helper()
+	if err := json.Unmarshal(recorder.Body.Bytes(), decodeInto); err != nil {
+		t.Fatalf("decode %s: %v", recorder.Body, err)
+	}
 }

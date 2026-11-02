@@ -4,6 +4,7 @@ const docArticle = document.getElementById("doc");
 const docPathLabel = document.getElementById("doc-path");
 const statusLabel = document.getElementById("status");
 const reloadButton = document.getElementById("reload-doc");
+const refreshButton = document.getElementById("refresh-tree");
 
 // dirPath -> Promise<entries>. Promises rather than results so two quick
 // expands of the same folder share one request.
@@ -150,6 +151,49 @@ async function loadRoot() {
     showStatus(`Could not load the tree: ${error.message}`, true);
   }
 }
+
+// Rescans on the server, then rebuilds the tree, re-expanding every folder
+// that was open and still exists. Folders are restored one depth level at a
+// time (in parallel within a level), and only if they still appear in their
+// parent's new listing, so deleted folders are never requested.
+async function refreshTree() {
+  refreshButton.disabled = true;
+  showStatus("Refreshing…");
+  const expandedPaths = [...treeRoot.querySelectorAll('[aria-expanded="true"]')]
+    .map((item) => item.dataset.path);
+  const sidebarScroll = treeRoot.parentElement.scrollTop;
+  try {
+    const result = await fetchJSON("/api/refresh", { method: "POST" });
+    childrenCache.clear();
+    treeItemsByPath.clear();
+    renderChildren(treeRoot, await loadChildren(""), 1);
+
+    const pathsByDepth = new Map();
+    for (const dirPath of expandedPaths) {
+      const depth = dirPath.split("/").length;
+      pathsByDepth.set(depth, [...(pathsByDepth.get(depth) ?? []), dirPath]);
+    }
+    for (const depth of [...pathsByDepth.keys()].sort((a, b) => a - b)) {
+      const stillPresent = pathsByDepth.get(depth)
+        .map((dirPath) => treeItemsByPath.get(dirPath))
+        .filter(Boolean);
+      await Promise.all(stillPresent.map(expandDir));
+    }
+
+    if (currentDocPath) selectTreeItem(treeItemsByPath.get(currentDocPath));
+    treeRoot.parentElement.scrollTop = sidebarScroll;
+    showStatus(`Indexed ${result.files} files in ${result.durationMs} ms`);
+  } catch (error) {
+    showStatus(`Refresh failed: ${error.message}`, true);
+  } finally {
+    refreshButton.disabled = false;
+  }
+}
+
+refreshButton.addEventListener("click", refreshTree);
+reloadButton.addEventListener("click", () => {
+  if (currentDocPath) openDoc(currentDocPath, null, { keepScroll: true });
+});
 
 // ---- Routing ----
 // Routes look like "#/docs/my%20file.md?anchor=heading-id". Path segments are

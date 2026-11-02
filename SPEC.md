@@ -138,7 +138,9 @@ paths get `400`, and paths that are missing or not indexed get `404`.
 - Routing uses the URL hash (`#/path/to/file.md`), so deep links survive a page
   reload, which expands the ancestors of the linked file.
 - **Refresh tree:** POST `/api/refresh`, drop the client cache, then re-fetch
-  root and every previously expanded dir that still exists, in parallel.
+  root and re-expand every previously expanded dir that still exists, one
+  depth level at a time (in parallel within a level). A dir is only fetched if
+  it still appears in its parent's new listing, so deleted dirs cause no 404s.
 - **Reload doc:** re-fetch `/api/doc` for the current file and keep the
   scroll position.
 - Keyboard: arrow keys move through the tree, and Enter opens. Uses ARIA

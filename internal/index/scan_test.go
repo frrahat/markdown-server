@@ -9,7 +9,10 @@ import (
 	"testing"
 )
 
-var markdownExtensions = []string{".md", ".markdown"}
+var (
+	markdownExtensions = []string{".md", ".markdown"}
+	scanForTestLogger  = slog.New(slog.NewTextHandler(io.Discard, nil))
+)
 
 func TestScanTreeShape(t *testing.T) {
 	root := buildTree(t, []string{
@@ -154,7 +157,7 @@ func scanForTest(t testing.TB, root string) *Index {
 	t.Helper()
 	idx, err := Scan(root, Options{
 		Extensions: markdownExtensions,
-		Logger:     slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Logger:     scanForTestLogger,
 	})
 	if err != nil {
 		t.Fatalf("Scan: %v", err)

@@ -33,6 +33,7 @@ type Options struct {
 // Unreadable subdirectories are logged and skipped; only an unreadable root
 // fails the scan.
 func Scan(root string, opts Options) (*Index, error) {
+	scanStart := time.Now()
 	if _, err := os.ReadDir(root); err != nil {
 		return nil, fmt.Errorf("scan root: %w", err)
 	}
@@ -50,6 +51,7 @@ func Scan(root string, opts Options) (*Index, error) {
 	}
 	return &Index{
 		IndexedAt:     time.Now(),
+		ScanDuration:  time.Since(scanStart),
 		FileCount:     scanner.fileCount,
 		DirCount:      len(scanner.childrenByDir) - 1,
 		childrenByDir: scanner.childrenByDir,

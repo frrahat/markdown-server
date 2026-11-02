@@ -78,7 +78,7 @@ gofmt clean; scan benchmark under budget.
 ### Phase 3: Browser UI
 - [x] 10. UI shell: lazy tree and doc view
 - [x] 11. Hash routing, deep links, mermaid
-- [ ] 12. Refresh tree and Reload doc
+- [x] 12. Refresh tree and Reload doc
 - [ ] 13. Keyboard navigation and ARIA
 
 ### Checkpoint C (complete)

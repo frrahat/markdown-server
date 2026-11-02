@@ -31,7 +31,8 @@ type Index struct {
 	IndexedAt  time.Time
 	FileCount  int
 	// DirCount excludes the root.
-	DirCount int
+	DirCount     int
+	ScanDuration time.Duration
 
 	childrenByDir map[string][]Entry
 	ignoreMatcher gitignore.Matcher
