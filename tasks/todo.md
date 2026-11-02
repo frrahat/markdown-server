@@ -15,17 +15,19 @@ slash-separated relative path into a validated root-relative path and an
 absolute filesystem path.
 
 **Acceptance criteria:**
-- [ ] `pathsafe` rejects `..` segments, absolute paths, backslashes, NUL bytes
-  and already-decoded `%2e%2e`, and returns `""` for the root
-- [ ] Resolving a path that goes through a symlink pointing outside the root
+- [x] `pathsafe` rejects `..` segments, absolute paths, backslashes, NUL bytes
+  and non-canonical forms, and returns `""` for the root. (Paths arrive
+  percent-decoded, so `%2e%2e` is covered by the `..` check; the encoded form
+  is tested over HTTP in Task 9.)
+- [x] Resolving a path that goes through a symlink pointing outside the root
   returns an error
-- [ ] `go run ./cmd/mdserver -h` lists `-addr`, `-unsafe-html`, `-ext`,
+- [x] `go run ./cmd/mdserver -h` lists `-addr`, `-unsafe-html`, `-ext`,
   `-max-size`; a missing or non-directory root exits non-zero with a clear
   message
 
 **Verification:**
-- [ ] `go test -race ./internal/pathsafe/...` (table-driven traversal cases)
-- [ ] `go build -o bin/mdserver ./cmd/mdserver`
+- [x] `go test -race ./internal/pathsafe/...` (table-driven traversal cases)
+- [x] `go build -o bin/mdserver ./cmd/mdserver`
 
 **Dependencies:** None
 
@@ -222,6 +224,7 @@ rendered HTML with modTime and size. `/raw/<path>` serves files that pass
 `Content-Security-Policy: sandbox`.
 
 **Acceptance criteria:**
+- [ ] `/raw/%2e%2e/x` and `/api/doc?path=%2e%2e%2Fx` are rejected (400)
 - [ ] Editing a file on disk changes the next `/api/doc` response; a file
   that's not indexed returns 404; an oversized file returns 413
 - [ ] `/raw/img/a.png` serves with a sniffed type and the security headers;
