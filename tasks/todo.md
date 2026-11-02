@@ -139,7 +139,7 @@ before listening, then serves.
 - [x] All tests pass, vet and gofmt clean
 - [x] Real-directory `curl` of `/api/tree` looks right
 - [x] Benchmark result under 2 s
-- [x] Review with human before proceeding
+- [ ] Review with human before proceeding
 
 ## Phase 2: Rendering over HTTP
 
