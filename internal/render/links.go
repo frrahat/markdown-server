@@ -76,11 +76,13 @@ func (t linkTransformer) rewrite(node ast.Node, destination []byte, docDir strin
 
 	escapedPath := escapePath(resolved)
 	if isLink && t.isMarkdown(resolved) {
-		// The viewer routes on the hash; a second '#' carries the heading
-		// anchor, which the frontend splits off.
+		// The viewer routes on the hash. The heading anchor rides in a query
+		// parameter rather than a second '#', because the sanitizer
+		// percent-encodes a second '#' and the frontend could then not tell it
+		// from a '#' in a file name (which escapePath also encodes as %23).
 		route := "#/" + escapedPath
 		if fragment != "" {
-			route += "#" + fragment
+			route += "?anchor=" + url.QueryEscape(unescapeOrRaw(fragment))
 		}
 		return []byte(route)
 	}
@@ -116,4 +118,11 @@ func escapePath(relPath string) string {
 		segments[i] = url.PathEscape(segment)
 	}
 	return strings.Join(segments, "/")
+}
+
+func unescapeOrRaw(fragment string) string {
+	if unescaped, err := url.PathUnescape(fragment); err == nil {
+		return unescaped
+	}
+	return fragment
 }

@@ -7,6 +7,7 @@ import (
 
 	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
 	"github.com/alecthomas/chroma/v2/styles"
+	"github.com/microcosm-cc/bluemonday"
 	"github.com/yuin/goldmark"
 	highlighting "github.com/yuin/goldmark-highlighting/v2"
 	"github.com/yuin/goldmark/extension"
@@ -31,6 +32,8 @@ type Options struct {
 // Renderer is safe for concurrent use.
 type Renderer struct {
 	markdown goldmark.Markdown
+	// sanitizer is nil when Options.UnsafeHTML is set.
+	sanitizer *bluemonday.Policy
 }
 
 func New(opts Options) *Renderer {
@@ -65,7 +68,11 @@ func New(opts Options) *Renderer {
 			),
 		),
 	)
-	return &Renderer{markdown: markdown}
+	renderer := &Renderer{markdown: markdown}
+	if !opts.UnsafeHTML {
+		renderer.sanitizer = newSanitizer()
+	}
+	return renderer
 }
 
 // Render converts markdown source to HTML. docPath is the document's
@@ -77,7 +84,10 @@ func (r *Renderer) Render(source []byte, docPath string) ([]byte, error) {
 	if err := r.markdown.Convert(source, &output, parser.WithContext(parserContext)); err != nil {
 		return nil, fmt.Errorf("render markdown: %w", err)
 	}
-	return output.Bytes(), nil
+	if r.sanitizer == nil {
+		return output.Bytes(), nil
+	}
+	return r.sanitizer.SanitizeBytes(output.Bytes()), nil
 }
 
 // ChromaCSS returns the stylesheet matching the class names that highlighted

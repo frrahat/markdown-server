@@ -68,7 +68,7 @@ gofmt clean; scan benchmark under budget.
 ### Phase 2: Rendering over HTTP
 - [x] 6. Base renderer: GFM, chroma classes, mermaid passthrough
 - [x] 7. Relative link rewriting
-- [ ] 8. Sanitizer policy and `-unsafe-html`
+- [x] 8. Sanitizer policy and `-unsafe-html`
 - [ ] 9. `/api/doc` and `/raw/` endpoints
 
 ### Checkpoint B

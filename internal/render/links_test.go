@@ -1,6 +1,7 @@
 package render
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -13,7 +14,9 @@ func TestLinkRewriting(t *testing.T) {
 		wantHTML string
 	}{
 		{"relative md", "docs/intro.md", "[x](guide.md)", `<a href="#/docs/guide.md">`},
-		{"md with anchor", "docs/intro.md", "[x](sub/page.md#setup-steps)", `<a href="#/docs/sub/page.md#setup-steps">`},
+		{"md with anchor", "docs/intro.md", "[x](sub/page.md#setup-steps)", `<a href="#/docs/sub/page.md?anchor=setup-steps">`},
+		{"anchor needing escape", "a.md", "[x](b.md#a%20b)", `<a href="#/b.md?anchor=a+b">`},
+		{"hash in file name", "a.md", "[x](c%23.md)", `<a href="#/c%23.md">`},
 		{"uppercase extension", "a.md", "[x](NOTES.MARKDOWN)", `<a href="#/NOTES.MARKDOWN">`},
 		{"parent within root", "docs/deep/a.md", "[x](../../README.md)", `<a href="#/README.md">`},
 		{"root-absolute", "docs/deep/a.md", "[x](/other/b.md)", `<a href="#/other/b.md">`},
@@ -32,13 +35,16 @@ func TestLinkRewriting(t *testing.T) {
 		{"escapes root", "docs/a.md", "[x](../../etc/passwd)", `<a href="../../etc/passwd">`},
 		{"root itself", "docs/a.md", "[x](..)", `<a href="..">`},
 	}
-	renderer := New(Options{UnsafeHTML: true})
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			html := renderString(t, renderer, tc.markdown, tc.docPath)
-			if !strings.Contains(html, tc.wantHTML) {
-				t.Errorf("rendered %q\nwant it to contain %q", html, tc.wantHTML)
-			}
-		})
+	// Both modes, since the sanitizer re-encodes URLs and must not mangle routes.
+	for _, unsafeHTML := range []bool{true, false} {
+		renderer := New(Options{UnsafeHTML: unsafeHTML})
+		for _, tc := range tests {
+			t.Run(fmt.Sprintf("%s/unsafe=%v", tc.name, unsafeHTML), func(t *testing.T) {
+				html := renderString(t, renderer, tc.markdown, tc.docPath)
+				if !strings.Contains(html, tc.wantHTML) {
+					t.Errorf("rendered %q\nwant it to contain %q", html, tc.wantHTML)
+				}
+			})
+		}
 	}
 }

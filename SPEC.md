@@ -115,7 +115,9 @@ paths get `400`, and paths that are missing or not indexed get `404`.
   rewritten link `target`/`rel`.
 - An AST transformer rewrites relative link destinations against the document's
   directory:
-  - `foo/bar.md#sec` becomes `#/foo/bar.md` plus the anchor (handled by the SPA)
+  - `foo/bar.md#sec` becomes `#/foo/bar.md?anchor=sec`. The anchor is a query
+    parameter, not a second `#`, because the sanitizer percent-encodes a second
+    `#`, which would then look like a `#` in a file name.
   - other relative files become `/raw/<resolved>`
   - absolute URLs and `#anchor`-only links are left alone. External links get
     `target="_blank" rel="noopener"`.
