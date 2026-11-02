@@ -37,7 +37,7 @@ leaving the browser.
 - Editing files, auth, multiple users, network exposure
 - Full-text content search, or filtering the tree by content
 - Live push updates (file watching or websockets). Refresh is manual.
-- Multiple root directories (see Open Questions)
+- Multiple root directories. Could be added later as top-level tree nodes.
 
 ## Design
 
@@ -47,13 +47,18 @@ leaving the browser.
 2. One root directory, given on the command line.
 3. Discovery matches filenames only, with case-insensitive extensions `.md` and
    `.markdown`.
-4. The walk skips `.git`, `node_modules`, and hidden dirs/files (dot-prefixed),
-   and honours `.gitignore` files, including nested ones.
+4. The walk skips `.git` and `node_modules` and honours `.gitignore` files,
+   including nested ones. Other dot-prefixed **dirs** (e.g. `.github/`) are
+   walked and appear if they contain markdown. Dot-prefixed **files** are
+   skipped, so `.env`-style files never reach the index or `/raw/`.
 5. Symlinks are not followed during the walk. That avoids cycles and escaping
    the root.
-6. Raw HTML in markdown is **escaped** by default, because a malicious README
-   in a cloned repo could otherwise run JS on our origin. The
-   `-unsafe-html` flag turns raw HTML on.
+6. Raw HTML in markdown is passed through and then **sanitized** with an
+   allowlist (bluemonday), so common README HTML (`<details>`, `<summary>`,
+   `<img>`, `<kbd>`, `<sup>`, alignment attributes) renders, while scripts,
+   event handlers and `javascript:` URLs are stripped. Unsanitized output would
+   let a malicious README in a cloned repo run JS on our origin. The
+   `-unsafe-html` flag skips the sanitizer.
 7. Mermaid is vendored and embedded, so the binary grows by about 3 MB but works
    offline. No CDN.
 8. Syntax highlighting happens server-side with chroma, so no JS is needed for
@@ -89,18 +94,25 @@ paths get `400`, and paths that are missing or not indexed get `404`.
 
 - `/api/doc` accepts only files that are in the current index. Files over 5 MB
   get `413`.
-- `/raw/` refuses dotfiles and anything under an ignored path, and sends
+- `/raw/` applies the same filter as the walk: it refuses dot-prefixed files,
+  anything under `.git`/`node_modules`, and anything gitignored. It sends
   `X-Content-Type-Options: nosniff` and `Content-Security-Policy: sandbox`.
 - **DNS-rebinding guard:** requests whose `Host` is not `127.0.0.1`, `localhost`
   or `[::1]` (with the port) get `403`.
-- Every response sets `Cache-Control: no-store`, so Reload always gets fresh
-  content.
+- `/api/*` and `/raw/*` responses set `Cache-Control: no-store`, so Reload
+  always gets fresh content. Embedded static assets are served with an ETag
+  instead, so the ~3 MB mermaid bundle isn't re-downloaded on every page load.
 
 ### Rendering
 
 - goldmark with the GFM extensions (tables, task lists, strikethrough,
   autolinks), footnotes, heading IDs, and chroma highlighting through
-  `goldmark-highlighting`.
+  `goldmark-highlighting`. Chroma emits CSS classes, not inline styles, so the
+  sanitizer can drop `style` attributes without losing highlighting.
+- The rendered HTML goes through the bluemonday policy (unless `-unsafe-html`).
+  The policy must keep what the renderer itself emits: heading `id`s, chroma
+  `class`es, `class="mermaid"`, task-list checkboxes, footnote links, and the
+  rewritten link `target`/`rel`.
 - An AST transformer rewrites relative link destinations against the document's
   directory:
   - `foo/bar.md#sec` becomes `#/foo/bar.md` plus the anchor (handled by the SPA)
@@ -108,7 +120,8 @@ paths get `400`, and paths that are missing or not indexed get `404`.
   - absolute URLs and `#anchor`-only links are left alone. External links get
     `target="_blank" rel="noopener"`.
 - ```` ```mermaid ```` blocks are emitted as `<pre class="mermaid">` without
-  highlighting. Client-side mermaid renders them after each load.
+  highlighting. Client-side mermaid renders them after each load, with
+  `securityLevel: 'strict'` so diagram labels can't inject HTML.
 
 ### Frontend
 
@@ -131,6 +144,7 @@ paths get `400`, and paths that are missing or not indexed get `404`.
 - Go 1.26, stdlib `net/http` (1.22+ pattern routing), `log/slog`
 - `github.com/yuin/goldmark`, `github.com/yuin/goldmark-highlighting/v2`
   (chroma)
+- `github.com/microcosm-cc/bluemonday` (HTML sanitizer)
 - A gitignore matcher library, chosen in the plan, that supports nested
   `.gitignore`
 - Mermaid (vendored minified JS)
@@ -202,14 +216,18 @@ unescaped data. The server-rendered doc HTML is the one deliberate exception.
 
 - **Framework:** stdlib `testing`, table-driven, with `-race` on.
 - **`internal/index`:** fixture trees built in `t.TempDir()`. Cases: empty-dir
-  pruning, nested `.gitignore`, hidden dirs, `node_modules`, symlink not
+  pruning, nested `.gitignore`, dot-dirs walked but dotfiles and `.git`
+  skipped, `node_modules`, symlink not
   followed, sort order, case-insensitive extension, an unreadable subdir
   skipped, and concurrent refresh coalescing with readers during a swap.
 - **`internal/pathsafe`:** traversal cases (`..`, `%2e%2e`, absolute paths,
   backslashes, NUL bytes, symlink escapes).
 - **`internal/render`:** golden-output tests for link rewriting (relative md,
   md with anchor, image, external, anchor-only, `../` within the root, `../`
-  escaping the root), mermaid passthrough, raw HTML escaped vs `-unsafe-html`.
+  escaping the root), mermaid passthrough. Sanitizer cases: `<details>`/`<img>`
+  kept; `<script>`, `onerror=`, `javascript:` hrefs and `style` stripped;
+  heading ids, chroma classes and `class="mermaid"` survive; `-unsafe-html`
+  bypasses the sanitizer.
 - **`internal/server`:** `httptest` for each endpoint: status codes, JSON
   shape, Host guard, `no-store` header, 413 on oversize, doc content changes
   after the file is edited (no caching), tree reflects a new file only after
@@ -226,7 +244,8 @@ unescaped data. The server-rendered doc HTML is the one deliberate exception.
   commit. Validate every user-supplied path through `pathsafe`. Keep the
   default bind on loopback.
 - **Ask first:** adding any Go dependency beyond goldmark,
-  goldmark-highlighting and the gitignore matcher. Changing the default bind
+  goldmark-highlighting, bluemonday and the gitignore matcher. Loosening the
+  sanitizer policy beyond what the renderer emits plus common README HTML. Changing the default bind
   address or the raw-HTML default. Adding a JS build step or framework.
   Changing the API shape after it's implemented.
 - **Never:** follow symlinks out of the root. Serve dotfiles or paths outside
@@ -240,8 +259,9 @@ unescaped data. The server-rendered doc HTML is the one deliberate exception.
 2. On a fixture tree of about 50k files and about 10k dirs (warm cache, SSD),
    the startup scan takes < 2 s, and `/api/tree` p95 is < 20 ms locally.
    Each response holds only one directory's children.
-3. The first page load fetches only `/api/tree?path=` and makes no other tree
-   calls until the user expands a folder.
+3. A first page load without a deep link fetches only `/api/tree?path=` and
+   makes no other tree calls until the user expands a folder. With a deep link,
+   it fetches only the linked file's ancestor dirs.
 4. No folder in the tree is empty when expanded.
 5. After a file is created or deleted on disk, the tree is unchanged until
    **Refresh tree** is clicked, and correct afterwards. Expanded folders that
@@ -257,11 +277,4 @@ unescaped data. The server-rendered doc HTML is the one deliberate exception.
 
 ## Open Questions
 
-1. **Raw HTML:** default is escaped, with an `-unsafe-html` opt-in. Many READMEs
-   use `<details>`/`<img>`, so do you want these on by default and accept the
-   XSS risk from untrusted repos? A middle option is an allowlist sanitizer
-   (bluemonday), which adds a dependency.
-2. **Multiple roots:** is one root enough for v1, or do you want
-   `mdserver ~/notes ~/work/docs` with each root as a top-level node?
-3. **Hidden dirs:** skipping all dot-dirs also hides things like `.github/`
-   docs. Is that acceptable?
+None blocking. The gitignore matcher library is chosen during planning.
