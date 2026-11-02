@@ -4,9 +4,15 @@ go 1.26.0
 
 toolchain go1.27.3
 
-require github.com/go-git/go-git/v5 v5.19.3
+require (
+	github.com/alecthomas/chroma/v2 v2.27.0
+	github.com/go-git/go-git/v5 v5.19.3
+	github.com/yuin/goldmark v1.8.7
+	github.com/yuin/goldmark-highlighting/v2 v2.0.0-20230729083705-37449abec8cc
+)
 
 require (
+	github.com/dlclark/regexp2/v2 v2.2.1 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
 	github.com/go-git/go-billy/v5 v5.9.2 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
