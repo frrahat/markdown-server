@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/frrahat/markdown-server/internal/index"
+	"github.com/frrahat/markdown-server/internal/render"
 )
 
 var discardLogger = slog.New(slog.NewTextHandler(io.Discard, nil))
@@ -104,6 +105,14 @@ func TestUnknownRouteAndMethod(t *testing.T) {
 
 func newTestServer(t *testing.T, files map[string]string) *Server {
 	t.Helper()
+	srv, _ := newTestServerWithRoot(t, files)
+	return srv
+}
+
+// newTestServerWithRoot also returns the root so tests can change files on
+// disk after the initial scan.
+func newTestServerWithRoot(t *testing.T, files map[string]string) (*Server, string) {
+	t.Helper()
 	root, err := filepath.EvalSymlinks(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -124,7 +133,13 @@ func newTestServer(t *testing.T, files map[string]string) *Server {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return New(Config{IndexHolder: holder, Logger: discardLogger})
+	return New(Config{
+		RootDir:      root,
+		IndexHolder:  holder,
+		Renderer:     render.New(render.Options{}),
+		MaxFileBytes: 1 << 10,
+		Logger:       discardLogger,
+	}), root
 }
 
 func newRequest(target string) *http.Request {

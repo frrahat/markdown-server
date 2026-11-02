@@ -9,29 +9,42 @@ import (
 	"strings"
 
 	"github.com/frrahat/markdown-server/internal/index"
+	"github.com/frrahat/markdown-server/internal/render"
 )
 
 type Config struct {
-	IndexHolder *index.Holder
-	Logger      *slog.Logger
+	// RootDir must be absolute with symlinks resolved (see pathsafe.Resolve).
+	RootDir      string
+	IndexHolder  *index.Holder
+	Renderer     *render.Renderer
+	MaxFileBytes int64
+	Logger       *slog.Logger
 }
 
 type Server struct {
-	indexHolder *index.Holder
-	logger      *slog.Logger
-	mux         *http.ServeMux
+	rootDir      string
+	indexHolder  *index.Holder
+	renderer     *render.Renderer
+	maxFileBytes int64
+	logger       *slog.Logger
+	mux          *http.ServeMux
 }
 
 func New(cfg Config) *Server {
 	s := &Server{
-		indexHolder: cfg.IndexHolder,
-		logger:      cfg.Logger,
-		mux:         http.NewServeMux(),
+		rootDir:      cfg.RootDir,
+		indexHolder:  cfg.IndexHolder,
+		renderer:     cfg.Renderer,
+		maxFileBytes: cfg.MaxFileBytes,
+		logger:       cfg.Logger,
+		mux:          http.NewServeMux(),
 	}
 	if s.logger == nil {
 		s.logger = slog.Default()
 	}
 	s.mux.HandleFunc("GET /api/tree", s.handleTree)
+	s.mux.HandleFunc("GET /api/doc", s.handleDoc)
+	s.mux.HandleFunc("GET /raw/{path...}", s.handleRaw)
 	return s
 }
 
@@ -40,7 +53,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusForbidden, "host not allowed")
 		return
 	}
-	if strings.HasPrefix(r.URL.Path, "/api/") {
+	if strings.HasPrefix(r.URL.Path, "/api/") || strings.HasPrefix(r.URL.Path, "/raw/") {
 		w.Header().Set("Cache-Control", "no-store")
 	}
 	s.mux.ServeHTTP(w, r)

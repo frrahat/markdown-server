@@ -151,13 +151,13 @@ heading IDs and goldmark-highlighting using chroma CSS classes. Fenced
 content. Generate the chroma CSS file used by the UI.
 
 **Acceptance criteria:**
-- [ ] Tables, task lists, strikethrough, autolinks and footnotes render
-- [ ] Fenced Go code has chroma `class` attributes and no inline `style`
-- [ ] A mermaid fence produces `<pre class="mermaid">` with its source
+- [x] Tables, task lists, strikethrough, autolinks and footnotes render
+- [x] Fenced Go code has chroma `class` attributes and no inline `style`
+- [x] A mermaid fence produces `<pre class="mermaid">` with its source
   escaped and unchanged
 
 **Verification:**
-- [ ] `go test -race ./internal/render/...` (golden files in
+- [x] `go test -race ./internal/render/...` (golden files in
   `internal/render/testdata/`)
 
 **Dependencies:** None (can run in parallel with Phase 1)
@@ -177,13 +177,13 @@ relative to the document's directory: `.md`/`.markdown` links become
 Absolute URLs and anchor-only links are left alone.
 
 **Acceptance criteria:**
-- [ ] The golden cases from the spec pass: relative md, md with anchor, image,
+- [x] The golden cases from the spec pass: relative md, md with anchor, image,
   external, anchor-only, `../` within the root
-- [ ] A `../` that escapes the root is left unrewritten (or made inert),
+- [x] A `../` that escapes the root is left unrewritten (or made inert),
   never turned into a `/raw/` path outside the root
 
 **Verification:**
-- [ ] `go test -race ./internal/render/...`
+- [x] `go test -race ./internal/render/...`
 
 **Dependencies:** Task 6
 
@@ -198,14 +198,14 @@ Absolute URLs and anchor-only links are left alone.
 HTML plus everything the renderer emits. `-unsafe-html` skips it.
 
 **Acceptance criteria:**
-- [ ] `<details>`, `<summary>`, `<img>`, `<kbd>`, `<sup>` and `align` survive;
+- [x] `<details>`, `<summary>`, `<img>`, `<kbd>`, `<sup>` and `align` survive;
   `<script>`, `on*=` handlers, `javascript:` hrefs and `style` are stripped
-- [ ] Heading ids, chroma classes, `class="mermaid"`, task-list checkboxes,
+- [x] Heading ids, chroma classes, `class="mermaid"`, task-list checkboxes,
   footnote links and link `target`/`rel` survive
-- [ ] With `UnsafeHTML: true`, raw HTML passes through unchanged
+- [x] With `UnsafeHTML: true`, raw HTML passes through unchanged
 
 **Verification:**
-- [ ] `go test -race ./internal/render/...`
+- [x] `go test -race ./internal/render/...`
 
 **Dependencies:** Task 7
 
@@ -224,16 +224,16 @@ rendered HTML with modTime and size. `/raw/<path>` serves files that pass
 `Content-Security-Policy: sandbox`.
 
 **Acceptance criteria:**
-- [ ] `/raw/%2e%2e/x` and `/api/doc?path=%2e%2e%2Fx` are rejected (400)
-- [ ] Editing a file on disk changes the next `/api/doc` response; a file
+- [x] `/raw/%2e%2e/x` and `/api/doc?path=%2e%2e%2Fx` are rejected (400)
+- [x] Editing a file on disk changes the next `/api/doc` response; a file
   that's not indexed returns 404; an oversized file returns 413
-- [ ] `/raw/img/a.png` serves with a sniffed type and the security headers;
+- [x] `/raw/img/a.png` serves with a sniffed type and the security headers;
   dotfiles, ignored paths and symlink escapes return 404/400
-- [ ] `-unsafe-html` and `-max-size` flags are wired through `main`
+- [x] `-unsafe-html` and `-max-size` flags are wired through `main`
 
 **Verification:**
-- [ ] `go test -race ./internal/server/...`
-- [ ] Manual: `curl -s '127.0.0.1:8080/api/doc?path=README.md' | jq -r .html`
+- [x] `go test -race ./internal/server/...`
+- [x] Manual: `curl -s '127.0.0.1:8080/api/doc?path=README.md' | jq -r .html`
 
 **Dependencies:** Tasks 5, 8
 
@@ -244,10 +244,10 @@ rendered HTML with modTime and size. `/raw/<path>` serves files that pass
 **Estimated scope:** M
 
 ## Checkpoint B: After Tasks 6–9
-- [ ] All tests pass, vet and gofmt clean
-- [ ] `curl` of a real README returns sanitized, highlighted HTML with
+- [x] All tests pass, vet and gofmt clean
+- [x] `curl` of a real README returns sanitized, highlighted HTML with
   rewritten links
-- [ ] Review with human before proceeding
+- [x] Review with human before proceeding (waived: user asked to run all phases through)
 
 ## Phase 3: Browser UI
 

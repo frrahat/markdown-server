@@ -69,7 +69,7 @@ gofmt clean; scan benchmark under budget.
 - [x] 6. Base renderer: GFM, chroma classes, mermaid passthrough
 - [x] 7. Relative link rewriting
 - [x] 8. Sanitizer policy and `-unsafe-html`
-- [ ] 9. `/api/doc` and `/raw/` endpoints
+- [x] 9. `/api/doc` and `/raw/` endpoints
 
 ### Checkpoint B
 `curl /api/doc` returns sanitized, highlighted HTML with rewritten links;

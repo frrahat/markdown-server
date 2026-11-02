@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/frrahat/markdown-server/internal/index"
+	"github.com/frrahat/markdown-server/internal/render"
 	"github.com/frrahat/markdown-server/internal/server"
 )
 
@@ -64,7 +65,13 @@ func run(args []string, stderr io.Writer) error {
 		return err
 	}
 	httpServer := &http.Server{
-		Handler:           server.New(server.Config{IndexHolder: indexHolder, Logger: logger}),
+		Handler: server.New(server.Config{
+			RootDir:      cfg.rootDir,
+			IndexHolder:  indexHolder,
+			Renderer:     render.New(render.Options{MarkdownExtensions: cfg.extensions, UnsafeHTML: cfg.unsafeHTML}),
+			MaxFileBytes: cfg.maxFileBytes,
+			Logger:       logger,
+		}),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	logger.Info("serving", "url", "http://"+listener.Addr().String())
