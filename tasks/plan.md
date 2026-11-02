@@ -79,9 +79,9 @@ gofmt clean; scan benchmark under budget.
 - [x] 10. UI shell: lazy tree and doc view
 - [x] 11. Hash routing, deep links, mermaid
 - [x] 12. Refresh tree and Reload doc
-- [ ] 13. Keyboard navigation and ARIA
+- [x] 13. Keyboard navigation and ARIA
 
-### Checkpoint C (complete)
+### Checkpoint C (complete) — done 2026-11-02
 All spec success criteria pass, frontend manual checklist checked in a real
 browser, `internal/...` coverage ≥ 80%.
 
@@ -93,7 +93,7 @@ browser, `internal/...` coverage ≥ 80%.
 | Sanitizer strips something the renderer emits (ids, chroma classes, mermaid, checkboxes) | Med | Policy built from an explicit list in Task 8, with a golden test asserting each survives |
 | goldmark-highlighting/v2 is a 2023 pseudo-version | Low | It is a thin adapter over chroma; if it breaks, call chroma directly from a small renderer hook |
 | Symlink escapes through `/raw/` or `/api/doc` | High | `pathsafe` resolves with `filepath.EvalSymlinks` and re-checks containment; dedicated tests in Task 1 and Task 9 |
-| Mermaid bundle size (~3 MB) bloats binary and page load | Low | Accepted in spec; ETag caching on static assets (Task 10) |
+| Mermaid bundle size (5.5 MB for 12.2.0) bloats binary and page load | Low | Accepted in spec; ETag caching on static assets (Task 10) |
 | Concurrent refresh vs. readers | Med | Atomic pointer swap + single-flight; `-race` test with readers during swap (Task 12) |
 
 ## Open Questions

@@ -59,8 +59,8 @@ leaving the browser.
    event handlers and `javascript:` URLs are stripped. Unsanitized output would
    let a malicious README in a cloned repo run JS on our origin. The
    `-unsafe-html` flag skips the sanitizer.
-7. Mermaid is vendored and embedded, so the binary grows by about 3 MB but works
-   offline. No CDN.
+7. Mermaid is vendored and embedded, so the binary grows by about 5.5 MB
+   (mermaid 12.x) but works offline. No CDN.
 8. Syntax highlighting happens server-side with chroma, so no JS is needed for
    it.
 

@@ -260,14 +260,14 @@ fetches `/api/doc` and inserts the server HTML. All other DOM is built with
 `createElement`/`textContent`.
 
 **Acceptance criteria:**
-- [ ] First load makes exactly one tree request (`path=`); expanding a folder
+- [x] First load makes exactly one tree request (`path=`); expanding a folder
   makes one request for that folder, and only on its first expand
-- [ ] Clicking a file renders it with highlighting styles applied
-- [ ] Static assets return an `ETag` and answer `If-None-Match` with 304
+- [x] Clicking a file renders it with highlighting styles applied
+- [x] Static assets return an `ETag` and answer `If-None-Match` with 304
 
 **Verification:**
-- [ ] `go test -race ./internal/server/...` (static/ETag test)
-- [ ] Manual in browser (DevTools network tab): request counts above
+- [x] `go test -race ./internal/server/...` (static/ETag test)
+- [x] Manual in browser (DevTools network tab): request counts above
 
 **Dependencies:** Task 9
 
@@ -285,15 +285,15 @@ link, fetch only the ancestor dirs, expand them, and open the file. Vendor
 `securityLevel: 'strict'` after each doc render.
 
 **Acceptance criteria:**
-- [ ] Reloading the page on a deep link reopens the file with its ancestors
+- [x] Reloading the page on a deep link reopens the file with its ancestors
   expanded, fetching only those ancestor dirs
-- [ ] Back/forward move between viewed docs; relative `.md` links navigate in
+- [x] Back/forward move between viewed docs; relative `.md` links navigate in
   the viewer; images load from `/raw/`
-- [ ] Mermaid blocks render as diagrams with no network requests outside the
+- [x] Mermaid blocks render as diagrams with no network requests outside the
   server
 
 **Verification:**
-- [ ] Manual in browser against a fixture tree with links, images and mermaid
+- [x] Manual in browser against a fixture tree with links, images and mermaid
 
 **Dependencies:** Task 10
 
@@ -311,16 +311,16 @@ still exists, in parallel. **Reload**: re-fetch the current doc and keep the
 scroll position.
 
 **Acceptance criteria:**
-- [ ] Concurrent `Refresh()` calls trigger one scan; readers during a swap see
+- [x] Concurrent `Refresh()` calls trigger one scan; readers during a swap see
   either the old or the new index (`-race` test)
-- [ ] A new file appears only after Refresh tree; expanded folders that still
+- [x] A new file appears only after Refresh tree; expanded folders that still
   exist stay expanded; deleted ones vanish
-- [ ] Reload shows edited content without a page reload and keeps the scroll
+- [x] Reload shows edited content without a page reload and keeps the scroll
   position
 
 **Verification:**
-- [ ] `go test -race ./internal/index/... ./internal/server/...`
-- [ ] Manual in browser: create/delete/edit files, then use the buttons
+- [x] `go test -race ./internal/index/... ./internal/server/...`
+- [x] Manual in browser: create/delete/edit files, then use the buttons
 
 **Dependencies:** Task 11
 
@@ -337,11 +337,11 @@ Up/Down move between visible items; Right expands or moves to the first child;
 Left collapses or moves to the parent; Enter opens the file. Roving tabindex.
 
 **Acceptance criteria:**
-- [ ] The whole tree can be navigated and files opened with the keyboard only
-- [ ] Roles and `aria-expanded` are correct in the DevTools accessibility pane
+- [x] The whole tree can be navigated and files opened with the keyboard only
+- [x] Roles and `aria-expanded` are correct in the DevTools accessibility pane
 
 **Verification:**
-- [ ] Manual in browser, keyboard only
+- [x] Manual in browser, keyboard only
 
 **Dependencies:** Task 12
 
@@ -350,9 +350,22 @@ Left collapses or moves to the parent; Enter opens the file. Roving tabindex.
 **Estimated scope:** S
 
 ## Checkpoint C: Complete
-- [ ] Every `SPEC.md` success criterion verified
-- [ ] Frontend manual checklist done in a real browser: expand, refresh with
+- [x] Every `SPEC.md` success criterion verified
+- [x] Frontend manual checklist done in a real browser: expand, refresh with
   expanded-state preservation, reload doc, deep link, back/forward, keyboard
   nav
-- [ ] `go test -race -cover ./internal/...` shows ≥ 80% per package
-- [ ] Single binary runs from an empty directory with no external files
+- [x] `go test -race -cover ./internal/...` shows ≥ 80% per package
+- [x] Single binary runs from an empty directory with no external files
+
+### Verification record (2026-11-02)
+
+- Browser checks ran in headless Chrome driven over the DevTools protocol
+  (the chrome-devtools MCP could not open tabs in this session): 34 checks
+  covering lazy expand request counts, deep links, back/forward, anchors,
+  mermaid, raw-HTML images, refresh with expanded-state preservation, reload
+  with scroll kept, keyboard navigation, and zero console errors or CSP
+  violations. Stable over 5 consecutive runs.
+- 50k-file tree (10.1k dirs): startup scan 311 ms; `/api/tree` p50 0.19 ms,
+  p95 0.28 ms over 1000 requests.
+- Coverage: index 97.5%, pathsafe 96.0%, render 94.0%, server 83.0%.
+- Binary (21 MB) serves all assets from an empty working directory.

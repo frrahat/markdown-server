@@ -71,11 +71,24 @@ function createTreeItem(entry, level) {
 
 function renderChildren(container, entries, level) {
   container.replaceChildren(...entries.map((entry) => createTreeItem(entry, level)));
+  ensureTabbableItem();
 }
 
-async function expandDir(item) {
-  if (item.getAttribute("aria-expanded") === "true") return;
+// item -> Promise for its in-progress or finished expand, so callers that
+// find a folder already expanding can wait for its children to arrive.
+const expandPromises = new WeakMap();
+
+function expandDir(item) {
+  if (item.getAttribute("aria-expanded") === "true") {
+    return expandPromises.get(item) ?? Promise.resolve();
+  }
   item.setAttribute("aria-expanded", "true");
+  const expansion = showChildren(item);
+  expandPromises.set(item, expansion);
+  return expansion;
+}
+
+async function showChildren(item) {
   let group = item.querySelector(":scope > ul");
   if (!group) {
     group = document.createElement("ul");
@@ -97,7 +110,12 @@ async function expandDir(item) {
 function collapseDir(item) {
   item.setAttribute("aria-expanded", "false");
   const group = item.querySelector(":scope > ul");
-  if (group) group.hidden = true;
+  if (!group) return;
+  // Move focus out first, or it would stay on an item that is now hidden.
+  if (group.contains(document.activeElement)) item.focus();
+  group.hidden = true;
+  for (const hiddenItem of group.querySelectorAll('[tabindex="0"]')) hiddenItem.tabIndex = -1;
+  ensureTabbableItem();
 }
 
 function toggleDir(item) {
@@ -137,6 +155,87 @@ treeRoot.addEventListener("click", (event) => {
     toggleDir(item);
   } else {
     navigateTo(item.dataset.path);
+  }
+});
+
+// ---- Keyboard navigation (WAI-ARIA tree pattern) ----
+// Roving tabindex: exactly one item is in the tab order, so Tab moves past
+// the tree in one step and arrow keys move within it.
+
+function visibleTreeItems() {
+  return [...treeRoot.querySelectorAll('[role="treeitem"]')]
+    .filter((item) => !item.parentElement.closest("ul[hidden]") && !item.parentElement.hidden);
+}
+
+function ensureTabbableItem() {
+  if (!treeRoot.querySelector('[role="treeitem"][tabindex="0"]')) {
+    const firstItem = treeRoot.querySelector('[role="treeitem"]');
+    if (firstItem) firstItem.tabIndex = 0;
+  }
+}
+
+treeRoot.addEventListener("focusin", (event) => {
+  const focusedItem = event.target.closest('[role="treeitem"]');
+  if (!focusedItem) return;
+  for (const item of treeRoot.querySelectorAll('[role="treeitem"][tabindex="0"]')) {
+    if (item !== focusedItem) item.tabIndex = -1;
+  }
+  focusedItem.tabIndex = 0;
+});
+
+function focusTreeItem(item) {
+  if (item) item.focus();
+}
+
+const treeKeys = new Set(["ArrowDown", "ArrowUp", "Home", "End", "ArrowRight", "ArrowLeft", "Enter", " "]);
+
+treeRoot.addEventListener("keydown", async (event) => {
+  const item = event.target.closest('[role="treeitem"]');
+  if (!item || event.altKey || event.ctrlKey || event.metaKey || !treeKeys.has(event.key)) return;
+  // Before any await: once the handler yields, the browser has already
+  // applied the default action (scrolling the sidebar).
+  event.preventDefault();
+  const isDir = item.dataset.type === "dir";
+  const isExpanded = item.getAttribute("aria-expanded") === "true";
+  const visibleItems = visibleTreeItems();
+  const position = visibleItems.indexOf(item);
+
+  switch (event.key) {
+    case "ArrowDown":
+      focusTreeItem(visibleItems[position + 1]);
+      break;
+    case "ArrowUp":
+      focusTreeItem(visibleItems[position - 1]);
+      break;
+    case "Home":
+      focusTreeItem(visibleItems[0]);
+      break;
+    case "End":
+      focusTreeItem(visibleItems[visibleItems.length - 1]);
+      break;
+    case "ArrowRight":
+      if (isDir && !isExpanded) {
+        expandDir(item);
+      } else if (isDir) {
+        await expandDir(item);
+        focusTreeItem(item.querySelector(':scope > ul > [role="treeitem"]'));
+      }
+      break;
+    case "ArrowLeft":
+      if (isDir && isExpanded) {
+        collapseDir(item);
+      } else {
+        focusTreeItem(item.parentElement.closest('[role="treeitem"]'));
+      }
+      break;
+    case "Enter":
+    case " ":
+      if (isDir) {
+        toggleDir(item);
+      } else {
+        navigateTo(item.dataset.path);
+      }
+      break;
   }
 });
 
