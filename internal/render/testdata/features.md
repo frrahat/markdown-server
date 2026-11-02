@@ -25,3 +25,6 @@ graph TD
 ```
 plain block
 ```
+
+See [the guide](guide/setup.md#install), ![logo](img/logo.png) and
+[an external site](https://example.com).

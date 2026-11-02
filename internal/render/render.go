@@ -19,6 +19,10 @@ import (
 const chromaStyleName = "github"
 
 type Options struct {
+	// MarkdownExtensions decide which relative links open in the viewer
+	// rather than through /raw/. Lowercase with a leading dot; defaults to
+	// .md and .markdown.
+	MarkdownExtensions []string
 	// UnsafeHTML skips sanitizing, so raw HTML in documents (scripts
 	// included) reaches the browser unchanged.
 	UnsafeHTML bool
@@ -30,6 +34,10 @@ type Renderer struct {
 }
 
 func New(opts Options) *Renderer {
+	markdownExtensions := opts.MarkdownExtensions
+	if len(markdownExtensions) == 0 {
+		markdownExtensions = []string{".md", ".markdown"}
+	}
 	markdown := goldmark.New(
 		goldmark.WithExtensions(
 			extension.GFM,
@@ -45,6 +53,7 @@ func New(opts Options) *Renderer {
 			parser.WithAutoHeadingID(),
 			parser.WithASTTransformers(
 				util.Prioritized(mermaidTransformer{}, 100),
+				util.Prioritized(linkTransformer{markdownExtensions: markdownExtensions}, 200),
 			),
 		),
 		goldmark.WithRendererOptions(
@@ -60,10 +69,12 @@ func New(opts Options) *Renderer {
 }
 
 // Render converts markdown source to HTML. docPath is the document's
-// root-relative path.
+// root-relative path, used to resolve its relative links.
 func (r *Renderer) Render(source []byte, docPath string) ([]byte, error) {
+	parserContext := parser.NewContext()
+	parserContext.Set(docPathContextKey, docPath)
 	var output bytes.Buffer
-	if err := r.markdown.Convert(source, &output); err != nil {
+	if err := r.markdown.Convert(source, &output, parser.WithContext(parserContext)); err != nil {
 		return nil, fmt.Errorf("render markdown: %w", err)
 	}
 	return output.Bytes(), nil
