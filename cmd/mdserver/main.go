@@ -3,15 +3,24 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
+	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
+	"time"
+
+	"github.com/frrahat/markdown-server/internal/index"
+	"github.com/frrahat/markdown-server/internal/server"
 )
 
 type config struct {
@@ -37,10 +46,42 @@ func run(args []string, stderr io.Writer) error {
 	if err != nil {
 		return err
 	}
-	slog.Info("config parsed; scanning and serving are not implemented yet",
-		"root", cfg.rootDir, "addr", cfg.listenAddr, "unsafeHTML", cfg.unsafeHTML,
-		"extensions", cfg.extensions, "maxFileBytes", cfg.maxFileBytes)
-	return nil
+	logger := slog.New(slog.NewTextHandler(stderr, nil))
+
+	scanStart := time.Now()
+	indexHolder, err := index.NewHolder(cfg.rootDir, index.Options{Extensions: cfg.extensions, Logger: logger})
+	if err != nil {
+		return err
+	}
+	idx := indexHolder.Current()
+	logger.Info("indexed", "root", cfg.rootDir, "files", idx.FileCount, "dirs", idx.DirCount,
+		"duration", time.Since(scanStart).Round(time.Millisecond))
+
+	// Listen before announcing the URL so a port conflict is reported instead
+	// of a URL that doesn't work.
+	listener, err := net.Listen("tcp", cfg.listenAddr)
+	if err != nil {
+		return err
+	}
+	httpServer := &http.Server{
+		Handler:           server.New(server.Config{IndexHolder: indexHolder, Logger: logger}),
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+	logger.Info("serving", "url", "http://"+listener.Addr().String())
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	serveErr := make(chan error, 1)
+	go func() { serveErr <- httpServer.Serve(listener) }()
+
+	select {
+	case err := <-serveErr:
+		return err
+	case <-ctx.Done():
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		return httpServer.Shutdown(shutdownCtx)
+	}
 }
 
 func parseConfig(args []string, stderr io.Writer) (config, error) {

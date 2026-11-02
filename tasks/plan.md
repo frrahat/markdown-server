@@ -59,7 +59,7 @@ Full details (acceptance, verification, files) live in `tasks/todo.md`.
 - [x] 2. Index scan: walk, skip rules, prune, sort
 - [x] 3. Nested `.gitignore` support
 - [x] 4. Scan performance benchmark
-- [ ] 5. `/api/tree` server, Host guard, startup wiring
+- [x] 5. `/api/tree` server, Host guard, startup wiring
 
 ### Checkpoint A
 `curl` against a real directory returns the root's children; tests, vet,

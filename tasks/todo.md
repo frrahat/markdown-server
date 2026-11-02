@@ -46,14 +46,14 @@ files. Walks other dot-dirs. Matches extensions case-insensitively. Prunes
 dirs with no markdown below them, bottom-up. Logs and skips unreadable dirs.
 
 **Acceptance criteria:**
-- [ ] `Children(dir)` returns dirs first, then files, case-insensitively sorted
-- [ ] Empty and markdown-free dirs never appear; `.github/` with a `.md`
+- [x] `Children(dir)` returns dirs first, then files, case-insensitively sorted
+- [x] Empty and markdown-free dirs never appear; `.github/` with a `.md`
   appears; `.notes.md`, `.git/` and `node_modules/` never appear
-- [ ] A symlinked dir is not descended into; an unreadable subdir is skipped
+- [x] A symlinked dir is not descended into; an unreadable subdir is skipped
   and the rest of the scan succeeds
 
 **Verification:**
-- [ ] `go test -race ./internal/index/...` (fixtures in `t.TempDir()`)
+- [x] `go test -race ./internal/index/...` (fixtures in `t.TempDir()`)
 
 **Dependencies:** None
 
@@ -70,15 +70,15 @@ the compiled filter on the `Index` with an `IsServable(relPath)` method for
 `/raw/` to use later. (Library choice is pending — see plan Open Questions.)
 
 **Acceptance criteria:**
-- [ ] A root `.gitignore` and a nested `.gitignore` both apply, scoped
+- [x] A root `.gitignore` and a nested `.gitignore` both apply, scoped
   correctly (a nested pattern doesn't affect siblings of its dir)
-- [ ] Negation (`!keep.md`), dir-only (`build/`) and `**` patterns behave as
+- [x] Negation (`!keep.md`), dir-only (`build/`) and `**` patterns behave as
   in git
-- [ ] `IsServable` returns false for ignored paths, dotfiles, `.git/` and
+- [x] `IsServable` returns false for ignored paths, dotfiles, `.git/` and
   `node_modules/` contents
 
 **Verification:**
-- [ ] `go test -race ./internal/index/...`
+- [x] `go test -race ./internal/index/...`
 
 **Dependencies:** Task 2
 
@@ -94,12 +94,12 @@ the compiled filter on the `Index` with an `IsServable(relPath)` method for
 Optimize only if over budget.
 
 **Acceptance criteria:**
-- [ ] `BenchmarkScan` exists and generates its fixture under `b.TempDir()`
-- [ ] Warm-cache scan is < 2 s on this machine, and the result is recorded in
+- [x] `BenchmarkScan` exists and generates its fixture under `b.TempDir()`
+- [x] Warm-cache scan is < 2 s on this machine, and the result is recorded in
   the commit message
 
 **Verification:**
-- [ ] `go test -run=^$ -bench=BenchmarkScan -benchtime=3x ./internal/index/`
+- [x] `go test -run=^$ -bench=BenchmarkScan -benchtime=3x ./internal/index/`
 
 **Dependencies:** Task 3
 
@@ -116,15 +116,15 @@ Optimize only if over budget.
 before listening, then serves.
 
 **Acceptance criteria:**
-- [ ] `GET /api/tree?path=` returns the root's children in the spec's JSON
+- [x] `GET /api/tree?path=` returns the root's children in the spec's JSON
   shape; an unknown dir returns 404; an invalid path returns 400
-- [ ] A request with `Host: evil.com:8080` gets 403; `127.0.0.1`, `localhost`
+- [x] A request with `Host: evil.com:8080` gets 403; `127.0.0.1`, `localhost`
   and `[::1]` with the port pass
-- [ ] `/api/*` responses carry `Cache-Control: no-store`
+- [x] `/api/*` responses carry `Cache-Control: no-store`
 
 **Verification:**
-- [ ] `go test -race ./internal/server/...` (`httptest`)
-- [ ] Manual: `go run ./cmd/mdserver ~/some/repo` then
+- [x] `go test -race ./internal/server/...` (`httptest`)
+- [x] Manual: `go run ./cmd/mdserver ~/some/repo` then
   `curl -s '127.0.0.1:8080/api/tree?path=' | jq`
 
 **Dependencies:** Tasks 1, 3
@@ -136,10 +136,10 @@ before listening, then serves.
 **Estimated scope:** M
 
 ## Checkpoint A: After Tasks 1–5
-- [ ] All tests pass, vet and gofmt clean
-- [ ] Real-directory `curl` of `/api/tree` looks right
-- [ ] Benchmark result under 2 s
-- [ ] Review with human before proceeding
+- [x] All tests pass, vet and gofmt clean
+- [x] Real-directory `curl` of `/api/tree` looks right
+- [x] Benchmark result under 2 s
+- [x] Review with human before proceeding
 
 ## Phase 2: Rendering over HTTP
 
