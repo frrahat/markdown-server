@@ -2,7 +2,12 @@
 // children of this directory" from memory.
 package index
 
-import "time"
+import (
+	"strings"
+	"time"
+
+	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
+)
 
 type EntryType string
 
@@ -29,6 +34,7 @@ type Index struct {
 	DirCount int
 
 	childrenByDir map[string][]Entry
+	ignoreMatcher gitignore.Matcher
 }
 
 // Children returns the direct children of dirPath ("" is the root).
@@ -49,4 +55,32 @@ func (idx *Index) HasFile(filePath string) bool {
 		}
 	}
 	return false
+}
+
+// IsServable reports whether relPath may be served raw: it applies the same
+// rules as the scan (no dotfiles, nothing under .git or node_modules, nothing
+// gitignored). relPath must already be validated by pathsafe.Clean and is
+// treated as a file.
+func (idx *Index) IsServable(relPath string) bool {
+	if relPath == "" {
+		return false
+	}
+	segments := strings.Split(relPath, "/")
+	for _, segment := range segments {
+		if alwaysSkippedDirs[segment] {
+			return false
+		}
+	}
+	if strings.HasPrefix(segments[len(segments)-1], ".") {
+		return false
+	}
+	// Each ancestor is checked separately because git cannot re-include a file
+	// whose parent directory is excluded, and the scan never descends into one.
+	for prefixLen := 1; prefixLen <= len(segments); prefixLen++ {
+		isDir := prefixLen < len(segments)
+		if idx.ignoreMatcher.Match(segments[:prefixLen], isDir) {
+			return false
+		}
+	}
+	return true
 }

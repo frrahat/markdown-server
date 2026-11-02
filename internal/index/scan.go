@@ -1,6 +1,8 @@
 package index
 
 import (
+	"bufio"
+	"bytes"
 	"cmp"
 	"fmt"
 	"log/slog"
@@ -9,6 +11,8 @@ import (
 	"slices"
 	"strings"
 	"time"
+
+	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
 )
 
 // alwaysSkippedDirs are skipped regardless of .gitignore: .git holds no docs
@@ -38,7 +42,7 @@ func Scan(root string, opts Options) (*Index, error) {
 		logger:        cmp.Or(opts.Logger, slog.Default()),
 		childrenByDir: make(map[string][]Entry),
 	}
-	scanner.walkDir("")
+	scanner.walkDir("", nil)
 	// The root is always listed, even when it has no markdown, so the UI gets
 	// an empty tree rather than a 404.
 	if _, found := scanner.childrenByDir[""]; !found {
@@ -49,6 +53,7 @@ func Scan(root string, opts Options) (*Index, error) {
 		FileCount:     scanner.fileCount,
 		DirCount:      len(scanner.childrenByDir) - 1,
 		childrenByDir: scanner.childrenByDir,
+		ignoreMatcher: gitignore.NewMatcher(scanner.allIgnorePatterns),
 	}, nil
 }
 
@@ -58,30 +63,52 @@ type scanner struct {
 	logger        *slog.Logger
 	childrenByDir map[string][]Entry
 	fileCount     int
+	// allIgnorePatterns collects every .gitignore pattern seen, for
+	// Index.IsServable. Each pattern is scoped to its directory by its domain.
+	allIgnorePatterns []gitignore.Pattern
 }
 
 // walkDir records relDir's markdown children and reports whether relDir has
 // any markdown beneath it. Directories that don't are left out of
 // childrenByDir and of their parent's entries, which is the bottom-up prune.
-func (s *scanner) walkDir(relDir string) bool {
-	dirEntries, err := os.ReadDir(filepath.Join(s.root, filepath.FromSlash(relDir)))
+//
+// ancestorPatterns holds the .gitignore patterns of relDir's ancestors only.
+// Matching against those, rather than every pattern in the repo, keeps the
+// per-entry cost proportional to depth instead of repo size.
+func (s *scanner) walkDir(relDir string, ancestorPatterns []gitignore.Pattern) bool {
+	absDir := filepath.Join(s.root, filepath.FromSlash(relDir))
+	dirEntries, err := os.ReadDir(absDir)
 	if err != nil {
 		s.logger.Warn("skipping unreadable directory", "dir", relDir, "err", err)
 		return false
 	}
 
+	dirSegments := splitSegments(relDir)
+	patterns := ancestorPatterns
+	if localPatterns := s.readIgnoreFile(absDir, relDir, dirSegments, dirEntries); len(localPatterns) > 0 {
+		// Clip before appending so sibling directories never share (and
+		// overwrite) the same backing array.
+		patterns = append(slices.Clip(ancestorPatterns), localPatterns...)
+		s.allIgnorePatterns = append(s.allIgnorePatterns, localPatterns...)
+	}
+	ignoreMatcher := gitignore.NewMatcher(patterns)
+
 	var children []Entry
 	for _, dirEntry := range dirEntries {
 		name := dirEntry.Name()
 		childPath := joinRel(relDir, name)
-		switch {
-		case dirEntry.Type()&os.ModeSymlink != 0:
+		if dirEntry.Type()&os.ModeSymlink != 0 {
 			continue
+		}
+		if len(patterns) > 0 && ignoreMatcher.Match(append(dirSegments, name), dirEntry.IsDir()) {
+			continue
+		}
+		switch {
 		case dirEntry.IsDir():
 			if alwaysSkippedDirs[name] {
 				continue
 			}
-			if s.walkDir(childPath) {
+			if s.walkDir(childPath, patterns) {
 				children = append(children, Entry{Name: name, Path: childPath, Type: EntryDir})
 			}
 		case dirEntry.Type().IsRegular():
@@ -98,6 +125,33 @@ func (s *scanner) walkDir(relDir string) bool {
 	slices.SortFunc(children, compareEntries)
 	s.childrenByDir[relDir] = children
 	return true
+}
+
+// readIgnoreFile parses relDir's .gitignore, if it has one. A .gitignore that
+// is a symlink is ignored, since reading it could pull rules from outside the
+// root.
+func (s *scanner) readIgnoreFile(absDir, relDir string, dirSegments []string, dirEntries []os.DirEntry) []gitignore.Pattern {
+	hasIgnoreFile := slices.ContainsFunc(dirEntries, func(dirEntry os.DirEntry) bool {
+		return dirEntry.Name() == ".gitignore" && dirEntry.Type().IsRegular()
+	})
+	if !hasIgnoreFile {
+		return nil
+	}
+	content, err := os.ReadFile(filepath.Join(absDir, ".gitignore"))
+	if err != nil {
+		s.logger.Warn("skipping unreadable .gitignore", "dir", relDir, "err", err)
+		return nil
+	}
+	var patterns []gitignore.Pattern
+	lineScanner := bufio.NewScanner(bytes.NewReader(content))
+	for lineScanner.Scan() {
+		line := strings.TrimSuffix(lineScanner.Text(), "\r")
+		if strings.HasPrefix(line, "#") || strings.TrimSpace(line) == "" {
+			continue
+		}
+		patterns = append(patterns, gitignore.ParsePattern(line, dirSegments))
+	}
+	return patterns
 }
 
 func (s *scanner) isMarkdown(name string) bool {
@@ -125,6 +179,13 @@ func joinRel(relDir, name string) string {
 		return name
 	}
 	return relDir + "/" + name
+}
+
+func splitSegments(relPath string) []string {
+	if relPath == "" {
+		return nil
+	}
+	return strings.Split(relPath, "/")
 }
 
 func splitParent(relPath string) (parentDir, name string) {

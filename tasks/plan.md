@@ -57,7 +57,7 @@ Full details (acceptance, verification, files) live in `tasks/todo.md`.
 ### Phase 1: Tree over HTTP
 - [x] 1. Scaffold module and `pathsafe`
 - [x] 2. Index scan: walk, skip rules, prune, sort
-- [ ] 3. Nested `.gitignore` support
+- [x] 3. Nested `.gitignore` support
 - [ ] 4. Scan performance benchmark
 - [ ] 5. `/api/tree` server, Host guard, startup wiring
 
@@ -98,6 +98,4 @@ browser, `internal/...` coverage ≥ 80%.
 
 ## Open Questions
 
-1. **Gitignore library:** OK to add `github.com/go-git/go-git/v5` (using only
-   its `plumbing/format/gitignore` package)? The alternative is a hand-rolled
-   matcher of roughly 150 lines plus tests, which avoids the dependency.
+None. (Gitignore library approved: go-git `plumbing/format/gitignore`.)
