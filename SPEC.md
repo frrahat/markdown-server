@@ -145,6 +145,16 @@ paths get `400`, and paths that are missing or not indexed get `404`.
   scroll position.
 - Keyboard: arrow keys move through the tree, and Enter opens. Uses ARIA
   `tree`/`treeitem` roles.
+- **Layout:** the rendered document uses the full width of the content pane.
+  Tables wider than the pane scroll horizontally inside it; short cells stay on
+  one line, and prose-length cells (over 60 characters) wrap at a 24em minimum
+  width.
+- **Theme:** light and dark. Follows `prefers-color-scheme` by default; a
+  toolbar toggle cycles Auto → Light → Dark and is saved in `localStorage`.
+  A small blocking `theme.js` in `<head>` applies the saved choice before first
+  paint (an external file, since the CSP forbids inline scripts). Code
+  highlighting uses chroma's `github` and `github-dark` stylesheets, switched by
+  their `media` attribute; Mermaid re-renders with its `dark` theme.
 
 ## Tech Stack
 

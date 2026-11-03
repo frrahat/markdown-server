@@ -1,13 +1,54 @@
 :root {
+  --bg: #ffffff;
+  --fg: #1f2328;
   --border: #d0d7de;
   --muted: #59636e;
   --accent: #0969da;
   --selected-bg: #ddf4ff;
   --hover-bg: #f3f4f6;
   --code-bg: #f6f8fa;
+  --surface: #f6f8fa;
+  --button-bg: #ffffff;
   --error: #cf222e;
+  color-scheme: light;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-  color: #1f2328;
+  color: var(--fg);
+  background: var(--bg);
+}
+
+/* The dark palette appears twice because CSS can't share a block between a
+   media query and a selector: once for an explicit choice, once for "auto"
+   when the OS is dark. Keep the two blocks identical. */
+:root[data-theme="dark"] {
+  --bg: #0d1117;
+  --fg: #e6edf3;
+  --border: #30363d;
+  --muted: #9198a1;
+  --accent: #4493f8;
+  --selected-bg: rgba(56, 139, 253, 0.18);
+  --hover-bg: #161b22;
+  --code-bg: #161b22;
+  --surface: #161b22;
+  --button-bg: #21262d;
+  --error: #f85149;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1117;
+    --fg: #e6edf3;
+    --border: #30363d;
+    --muted: #9198a1;
+    --accent: #4493f8;
+    --selected-bg: rgba(56, 139, 253, 0.18);
+    --hover-bg: #161b22;
+    --code-bg: #161b22;
+    --surface: #161b22;
+    --button-bg: #21262d;
+    --error: #f85149;
+    color-scheme: dark;
+  }
 }
 
 * { box-sizing: border-box; }
@@ -27,7 +68,7 @@ body {
   gap: 12px;
   padding: 8px 16px;
   border-bottom: 1px solid var(--border);
-  background: #f6f8fa;
+  background: var(--surface);
   font-size: 14px;
 }
 
@@ -51,7 +92,8 @@ button {
   padding: 4px 12px;
   border: 1px solid var(--border);
   border-radius: 6px;
-  background: #fff;
+  color: inherit;
+  background: var(--button-bg);
   cursor: pointer;
 }
 button:hover:not(:disabled) { background: var(--hover-bg); }
@@ -62,7 +104,9 @@ button:disabled { opacity: 0.5; cursor: default; }
 .layout {
   flex: 1;
   display: grid;
-  grid-template-columns: minmax(220px, 300px) 1fr;
+  /* minmax(0, …): a plain 1fr column grows to fit wide content (tables, code),
+     widening the page instead of letting that content scroll in place. */
+  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
   min-height: 0;
 }
 
@@ -116,7 +160,6 @@ button:disabled { opacity: 0.5; cursor: default; }
 /* ---- Rendered markdown ---- */
 
 .markdown-body {
-  max-width: 900px;
   font-size: 16px;
   line-height: 1.6;
   word-wrap: break-word;
@@ -179,16 +222,29 @@ button:disabled { opacity: 0.5; cursor: default; }
   border-left: 0.25em solid var(--border);
 }
 
+/* Laid out at its natural width, capped at the column, and scrolled
+   sideways when wider, so columns aren't squeezed into wrapped slivers. */
 .markdown-body table {
-  border-collapse: collapse;
   display: block;
-  overflow: auto;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 0 0 16px;
+  border-collapse: collapse;
 }
 .markdown-body th, .markdown-body td {
   padding: 6px 13px;
   border: 1px solid var(--border);
+  /* Short values (ids, dates, names) stay on one line; a table wider than
+     the page scrolls instead of breaking them at hyphens and spaces. */
+  white-space: nowrap;
 }
-.markdown-body tr:nth-child(2n) { background: #f6f8fa; }
+/* Prose-length cells (tagged by app.js) wrap, within a readable width. */
+.markdown-body td.long-cell {
+  white-space: normal;
+  min-width: 24em;
+}
+.markdown-body tr:nth-child(2n) { background: var(--surface); }
 
 .markdown-body hr {
   height: 1px;
@@ -202,7 +258,7 @@ button:disabled { opacity: 0.5; cursor: default; }
   border: 1px solid var(--border);
   border-bottom-width: 2px;
   border-radius: 6px;
-  background: #f6f8fa;
+  background: var(--surface);
 }
 
 .markdown-body li:has(> input[type="checkbox"]) { list-style: none; }

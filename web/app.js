@@ -16,9 +16,7 @@ let currentDocPath = null;
 // Incremented per doc load so a slow response can't overwrite a newer one.
 let latestDocRequest = 0;
 
-if (window.mermaid) {
-  window.mermaid.initialize({ startOnLoad: false, securityLevel: "strict" });
-}
+const themeToggle = document.getElementById("theme-toggle");
 
 async function fetchJSON(url, options) {
   const response = await fetch(url, options);
@@ -384,8 +382,17 @@ let diagramCounter = 0;
 
 async function renderDiagrams() {
   if (!window.mermaid) return;
+  // Re-initialized per batch so diagrams follow the current theme.
+  window.mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: "strict",
+    theme: isDarkThemeActive() ? "dark" : "default",
+  });
   for (const diagramNode of docArticle.querySelectorAll("pre.mermaid")) {
-    const diagramSource = diagramNode.textContent;
+    // The source is kept on the node so a theme change can re-render it after
+    // the first render has replaced the text with an SVG.
+    const diagramSource = (diagramNode.dataset.source ??= diagramNode.textContent);
+    diagramNode.classList.remove("diagram-error");
     try {
       const { svg, bindFunctions } = await window.mermaid.render(`mdserver-diagram-${++diagramCounter}`, diagramSource);
       // mermaid sanitizes its own SVG output in strict security mode.
@@ -416,7 +423,19 @@ function prepareDocContent(html, docPath) {
     const isMarkdownLink = element.tagName === "A" && /\.(md|markdown)$/i.test(resolvedPath);
     element.setAttribute(attribute, isMarkdownLink ? `#/${encodedPath}` : `/raw/${encodedPath}`);
   }
+  markLongTableCells(template.content);
   return template.content;
+}
+
+// Table cells don't wrap (see style.css), which suits short values but would
+// stretch a sentence-long cell into one very long line; those are tagged so
+// they wrap instead.
+const longCellCharacters = 60;
+
+function markLongTableCells(root) {
+  for (const cell of root.querySelectorAll("td")) {
+    if (cell.textContent.trim().length > longCellCharacters) cell.classList.add("long-cell");
+  }
 }
 
 // Returns the root-relative path a relative URL points to, or null when the
@@ -465,6 +484,32 @@ docArticle.addEventListener("click", (event) => {
     }
   }
 });
+
+// ---- Theme ----
+// applyTheme, savedThemeChoice, saveThemeChoice and isDarkThemeActive come
+// from theme.js, which runs before first paint.
+
+const themeOrder = ["auto", "light", "dark"];
+const themeLabels = { auto: "Theme: Auto", light: "Theme: Light", dark: "Theme: Dark" };
+let themeChoice = savedThemeChoice();
+
+function updateThemeToggle() {
+  themeToggle.textContent = themeLabels[themeChoice];
+}
+
+themeToggle.addEventListener("click", () => {
+  themeChoice = themeOrder[(themeOrder.indexOf(themeChoice) + 1) % themeOrder.length];
+  saveThemeChoice(themeChoice);
+  applyTheme(themeChoice);
+  updateThemeToggle();
+  renderDiagrams();
+});
+
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+  if (themeChoice === "auto") renderDiagrams();
+});
+
+updateThemeToggle();
 
 function showStatus(message, isError = false) {
   statusLabel.textContent = message;

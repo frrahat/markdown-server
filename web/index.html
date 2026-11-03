@@ -6,8 +6,15 @@
   <title>mdserver</title>
   <!-- Empty icon so the browser doesn't request /favicon.ico. -->
   <link rel="icon" href="data:,">
+  <meta name="color-scheme" content="light dark">
   <link rel="stylesheet" href="/style.css">
-  <link rel="stylesheet" href="/chroma.css">
+  <!-- The media queries make these follow the OS theme; theme.js overrides
+       them when the user picks a theme explicitly. -->
+  <link rel="stylesheet" href="/chroma.css" id="chroma-light" media="(prefers-color-scheme: light)">
+  <link rel="stylesheet" href="/chroma-dark.css" id="chroma-dark" media="(prefers-color-scheme: dark)">
+  <!-- Blocking on purpose: applies a saved theme before first paint, so the
+       page never flashes the other theme. Must come after the links above. -->
+  <script src="/theme.js"></script>
   <!-- Deferred classic and module scripts run in document order, so mermaid
        is defined before app.js starts. -->
   <script src="/vendor/mermaid.min.js" defer></script>
@@ -19,6 +26,7 @@
     <button type="button" id="refresh-tree" title="Rescan the directory for added or removed files">Refresh tree</button>
     <span id="doc-path" class="doc-path"></span>
     <span id="status" class="status" role="status" aria-live="polite"></span>
+    <button type="button" id="theme-toggle" title="Switch between following the system theme, light, and dark"></button>
     <button type="button" id="reload-doc" title="Re-read the current file from disk" disabled>Reload</button>
   </header>
   <div class="layout">

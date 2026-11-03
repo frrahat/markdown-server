@@ -17,7 +17,10 @@ import (
 	"github.com/yuin/goldmark/util"
 )
 
-const chromaStyleName = "github"
+const (
+	chromaLightStyle = "github"
+	chromaDarkStyle  = "github-dark"
+)
 
 type Options struct {
 	// MarkdownExtensions decide which relative links open in the viewer
@@ -46,7 +49,7 @@ func New(opts Options) *Renderer {
 			extension.GFM,
 			extension.Footnote,
 			highlighting.NewHighlighting(
-				highlighting.WithStyle(chromaStyleName),
+				highlighting.WithStyle(chromaLightStyle),
 				// Classes rather than inline styles, so the sanitizer can strip
 				// every style attribute without losing highlighting.
 				highlighting.WithFormatOptions(chromahtml.WithClasses(true)),
@@ -90,13 +93,26 @@ func (r *Renderer) Render(source []byte, docPath string) ([]byte, error) {
 	return r.sanitizer.SanitizeBytes(output.Bytes()), nil
 }
 
-// ChromaCSS returns the stylesheet matching the class names that highlighted
-// code blocks use.
-func ChromaCSS() ([]byte, error) {
+// ChromaCSS returns the light and dark stylesheets matching the class names
+// that highlighted code blocks use. Rendered HTML is the same for both themes;
+// only the stylesheet differs.
+func ChromaCSS() (light, dark []byte, err error) {
+	light, err = chromaStyleCSS(chromaLightStyle)
+	if err != nil {
+		return nil, nil, err
+	}
+	dark, err = chromaStyleCSS(chromaDarkStyle)
+	if err != nil {
+		return nil, nil, err
+	}
+	return light, dark, nil
+}
+
+func chromaStyleCSS(styleName string) ([]byte, error) {
 	var css bytes.Buffer
 	formatter := chromahtml.New(chromahtml.WithClasses(true))
-	if err := formatter.WriteCSS(&css, styles.Get(chromaStyleName)); err != nil {
-		return nil, fmt.Errorf("write chroma css: %w", err)
+	if err := formatter.WriteCSS(&css, styles.Get(styleName)); err != nil {
+		return nil, fmt.Errorf("write chroma css for %s: %w", styleName, err)
 	}
 	return css.Bytes(), nil
 }

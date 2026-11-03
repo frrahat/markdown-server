@@ -64,6 +64,9 @@ bin/mdserver [flags] <root-dir>
   - **Reload** re-reads the current file from disk, and keeps your scroll
     position.
 - **Keyboard navigation** in the tree: arrow keys, Home/End, Enter.
+- **Dark theme.** Follows the OS setting by default; the toolbar button cycles
+  Auto → Light → Dark, and the choice is remembered in the browser. Code
+  highlighting and Mermaid diagrams switch with it.
 
 ## Security model
 

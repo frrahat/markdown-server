@@ -19,6 +19,8 @@ func TestStaticAssets(t *testing.T) {
 		{"/app.js", "text/javascript; charset=utf-8", "loadChildren"},
 		{"/style.css", "text/css; charset=utf-8", ".tree-row"},
 		{"/chroma.css", "text/css; charset=utf-8", ".chroma"},
+		{"/chroma-dark.css", "text/css; charset=utf-8", ".chroma"},
+		{"/theme.js", "text/javascript; charset=utf-8", "applyTheme"},
 		{"/vendor/mermaid.min.js", "text/javascript; charset=utf-8", "mermaid"},
 	}
 	for _, tc := range tests {

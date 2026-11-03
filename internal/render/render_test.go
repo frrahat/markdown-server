@@ -71,12 +71,17 @@ func TestMermaidPassthrough(t *testing.T) {
 }
 
 func TestChromaCSS(t *testing.T) {
-	css, err := ChromaCSS()
+	light, dark, err := ChromaCSS()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Contains(css, []byte(".chroma .kd")) {
-		t.Errorf("chroma CSS lacks keyword rule:\n%.300s", css)
+	for name, css := range map[string][]byte{"light": light, "dark": dark} {
+		if !bytes.Contains(css, []byte(".chroma .kd")) {
+			t.Errorf("%s chroma CSS lacks keyword rule:\n%.300s", name, css)
+		}
+	}
+	if bytes.Equal(light, dark) {
+		t.Error("light and dark chroma CSS are identical")
 	}
 }
 

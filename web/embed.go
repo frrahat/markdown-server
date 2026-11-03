@@ -4,5 +4,5 @@ package web
 
 import "embed"
 
-//go:embed index.html app.js style.css vendor/mermaid.min.js
+//go:embed index.html app.js theme.js style.css vendor/mermaid.min.js
 var Files embed.FS

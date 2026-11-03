@@ -48,11 +48,12 @@ func loadStaticAssets() (*staticAssets, error) {
 	if err != nil {
 		return nil, fmt.Errorf("load embedded web files: %w", err)
 	}
-	chromaCSS, err := render.ChromaCSS()
+	chromaLightCSS, chromaDarkCSS, err := render.ChromaCSS()
 	if err != nil {
 		return nil, err
 	}
-	assets.add("/chroma.css", chromaCSS)
+	assets.add("/chroma.css", chromaLightCSS)
+	assets.add("/chroma-dark.css", chromaDarkCSS)
 	assets.byPath["/"] = assets.byPath["/index.html"]
 	return assets, nil
 }
