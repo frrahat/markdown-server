@@ -22,7 +22,7 @@ func TestParseConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parseConfig: %v", err)
 	}
-	if cfg.rootDir != rootDir || cfg.listenAddr != "127.0.0.1:8080" || cfg.unsafeHTML {
+	if cfg.rootDir != rootDir || cfg.listenAddr != "127.0.0.1:8642" || cfg.unsafeHTML {
 		t.Fatalf("unexpected config: %+v", cfg)
 	}
 	if !slices.Equal(cfg.extensions, []string{".md", ".txt"}) {

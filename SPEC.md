@@ -16,7 +16,7 @@ leaving the browser.
 
 ### User stories
 
-1. Run `mdserver ~/notes` and open `http://127.0.0.1:8080`. The top level of the
+1. Run `mdserver ~/notes` and open `http://127.0.0.1:8642`. The top level of the
    tree appears.
 2. Expand a folder. Its direct children appear: subfolders that contain markdown
    somewhere below them, plus `.md`/`.markdown` files. Folders with no markdown
@@ -160,14 +160,14 @@ paths get `400`, and paths that are missing or not indexed get `404`.
 ## Commands
 
 ```
-Run:    go run ./cmd/mdserver -addr 127.0.0.1:8080 ~/notes
-Build:  go build -o bin/mdserver ./cmd/mdserver
-Test:   go test -race ./...
-Vet:    go vet ./...
-Format: gofmt -l . (must print nothing); gofmt -w . to fix
+Run:    make run ROOT=~/notes      (go run ./cmd/mdserver -addr 127.0.0.1:8642 ~/notes)
+Build:  make build                 (go build -o bin/mdserver ./cmd/mdserver)
+Test:   make test                  (go test -race ./...)
+Check:  make check                 (gofmt -l must be empty, go vet, go test -race)
+Format: gofmt -w .
 ```
 
-CLI flags: `-addr` (default `127.0.0.1:8080`), `-unsafe-html` (default off),
+CLI flags: `-addr` (default `127.0.0.1:8642`), `-unsafe-html` (default off),
 `-ext` (default `.md,.markdown`), `-max-size` (default `5MB`). The single
 positional argument is the root directory.
 
@@ -182,6 +182,7 @@ internal/pathsafe/       → resolve and validate user-supplied relative paths (
 web/                     → index.html, app.js, style.css, vendor/mermaid.min.js, embed.go
 testdata/                → fixture markdown trees used by tests
 SPEC.md                  → this document
+README.md, Makefile      → usage docs and run/build/test targets
 tasks/                   → plan.md, todo.md
 ```
 

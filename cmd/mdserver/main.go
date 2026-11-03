@@ -99,7 +99,7 @@ func run(args []string, stderr io.Writer) error {
 func parseConfig(args []string, stderr io.Writer) (config, error) {
 	flags := flag.NewFlagSet("mdserver", flag.ContinueOnError)
 	flags.SetOutput(stderr)
-	listenAddr := flags.String("addr", "127.0.0.1:8080", "listen address")
+	listenAddr := flags.String("addr", "127.0.0.1:8642", "listen address")
 	unsafeHTML := flags.Bool("unsafe-html", false, "render raw HTML in markdown without sanitizing it")
 	extensionList := flags.String("ext", ".md,.markdown", "comma-separated markdown file extensions (case-insensitive)")
 	maxSize := flags.String("max-size", "5MB", "largest markdown file to render (e.g. 512KB, 5MB)")
