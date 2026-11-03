@@ -8,6 +8,8 @@ syntax-highlighted code and Mermaid diagrams.
 It ships as a single binary with everything embedded, works offline, and
 binds to localhost only.
 
+![mdserver showing a document with a Mermaid diagram, a table and highlighted code, next to the file tree](docs/images/screenshot.png)
+
 ## Quick start
 
 ```sh
