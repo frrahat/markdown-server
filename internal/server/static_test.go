@@ -21,6 +21,7 @@ func TestStaticAssets(t *testing.T) {
 		{"/chroma.css", "text/css; charset=utf-8", ".chroma"},
 		{"/chroma-dark.css", "text/css; charset=utf-8", ".chroma"},
 		{"/theme.js", "text/javascript; charset=utf-8", "applyTheme"},
+		{"/vim.js", "text/javascript; charset=utf-8", "installVimKeys"},
 		{"/vendor/mermaid.min.js", "text/javascript; charset=utf-8", "mermaid"},
 	}
 	for _, tc := range tests {

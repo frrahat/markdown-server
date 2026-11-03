@@ -1,3 +1,5 @@
+import { installVimKeys } from "/vim.js";
+
 const treeRoot = document.getElementById("tree");
 const contentPane = document.getElementById("content");
 const docArticle = document.getElementById("doc");
@@ -17,6 +19,8 @@ let currentDocPath = null;
 let latestDocRequest = 0;
 
 const themeToggle = document.getElementById("theme-toggle");
+const lineNumbersToggle = document.getElementById("line-numbers-toggle");
+const helpDialog = document.getElementById("help-dialog");
 
 async function fetchJSON(url, options) {
   const response = await fetch(url, options);
@@ -153,6 +157,9 @@ treeRoot.addEventListener("click", (event) => {
     toggleDir(item);
   } else {
     navigateTo(item.dataset.path);
+    // A mouse click (detail > 0, unlike a synthesized keyboard click) hands
+    // focus to the document, so j/k scroll it rather than moving in the tree.
+    if (event.detail > 0) contentPane.focus({ preventScroll: true });
   }
 });
 
@@ -186,10 +193,12 @@ function focusTreeItem(item) {
 }
 
 const treeKeys = new Set(["ArrowDown", "ArrowUp", "Home", "End", "ArrowRight", "ArrowLeft", "Enter", " "]);
+const vimTreeKeys = { j: "ArrowDown", k: "ArrowUp", h: "ArrowLeft", l: "ArrowRight" };
 
 treeRoot.addEventListener("keydown", async (event) => {
   const item = event.target.closest('[role="treeitem"]');
-  if (!item || event.altKey || event.ctrlKey || event.metaKey || !treeKeys.has(event.key)) return;
+  const key = vimTreeKeys[event.key] ?? event.key;
+  if (!item || event.altKey || event.ctrlKey || event.metaKey || !treeKeys.has(key)) return;
   // Before any await: once the handler yields, the browser has already
   // applied the default action (scrolling the sidebar).
   event.preventDefault();
@@ -198,7 +207,7 @@ treeRoot.addEventListener("keydown", async (event) => {
   const visibleItems = visibleTreeItems();
   const position = visibleItems.indexOf(item);
 
-  switch (event.key) {
+  switch (key) {
     case "ArrowDown":
       focusTreeItem(visibleItems[position + 1]);
       break;
@@ -365,6 +374,7 @@ async function openDoc(path, anchor, { keepScroll = false } = {}) {
   showStatus("");
 
   await renderDiagrams();
+  vim.documentChanged();
   if (keepScroll) {
     contentPane.scrollTop = savedScroll;
   } else if (anchor) {
@@ -424,7 +434,29 @@ function prepareDocContent(html, docPath) {
     element.setAttribute(attribute, isMarkdownLink ? `#/${encodedPath}` : `/raw/${encodedPath}`);
   }
   markLongTableCells(template.content);
+  prepareCodeLines(template.content);
   return template.content;
+}
+
+// Line numbers are drawn by CSS counters on per-line spans, so copying code
+// never copies the numbers. Highlighted blocks already have a span.line per
+// line; plain blocks (no language) get them here. The number column is sized
+// to the block's line count.
+function prepareCodeLines(root) {
+  for (const code of root.querySelectorAll("pre:not(.mermaid) > code")) {
+    if (!code.querySelector(":scope > .line") && code.children.length === 0) {
+      const lines = code.textContent.split("\n");
+      if (lines.at(-1) === "") lines.pop();
+      code.replaceChildren(...lines.map((lineText) => {
+        const line = document.createElement("span");
+        line.className = "line";
+        line.textContent = `${lineText}\n`;
+        return line;
+      }));
+    }
+    const lineCount = code.querySelectorAll(":scope > .line").length;
+    code.style.setProperty("--line-number-width", `${String(lineCount).length}ch`);
+  }
 }
 
 // Table cells don't wrap (see style.css), which suits short values but would
@@ -483,6 +515,50 @@ docArticle.addEventListener("click", (event) => {
       // A malformed escape in a hand-written link: nothing to scroll to.
     }
   }
+});
+
+// ---- Line numbers ----
+
+const lineNumbersStorageKey = "mdserver-line-numbers";
+
+function lineNumbersEnabled() {
+  try {
+    return localStorage.getItem(lineNumbersStorageKey) !== "off";
+  } catch {
+    return true;
+  }
+}
+
+function applyLineNumbers(enabled) {
+  document.documentElement.classList.toggle("line-numbers", enabled);
+  lineNumbersToggle.setAttribute("aria-pressed", String(enabled));
+}
+
+lineNumbersToggle.addEventListener("click", () => {
+  const enabled = !document.documentElement.classList.contains("line-numbers");
+  applyLineNumbers(enabled);
+  try {
+    if (enabled) localStorage.removeItem(lineNumbersStorageKey);
+    else localStorage.setItem(lineNumbersStorageKey, "off");
+  } catch {
+    // Not persisting is acceptable.
+  }
+});
+
+applyLineNumbers(lineNumbersEnabled());
+
+// ---- Vim keys and help ----
+
+document.getElementById("help-button").addEventListener("click", () => helpDialog.showModal());
+
+const vim = installVimKeys({
+  contentPane,
+  docArticle,
+  treeRoot,
+  findBar: document.getElementById("find-bar"),
+  findInput: document.getElementById("find-input"),
+  helpDialog,
+  showStatus,
 });
 
 // ---- Theme ----

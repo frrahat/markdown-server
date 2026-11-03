@@ -26,18 +26,45 @@
     <button type="button" id="refresh-tree" title="Rescan the directory for added or removed files">Refresh tree</button>
     <span id="doc-path" class="doc-path"></span>
     <span id="status" class="status" role="status" aria-live="polite"></span>
+    <button type="button" id="line-numbers-toggle" aria-pressed="true" title="Show or hide line numbers in code blocks">Line numbers</button>
     <button type="button" id="theme-toggle" title="Switch between following the system theme, light, and dark"></button>
+    <button type="button" id="help-button" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">?</button>
     <button type="button" id="reload-doc" title="Re-read the current file from disk" disabled>Reload</button>
   </header>
   <div class="layout">
     <nav class="sidebar" aria-label="Files">
       <ul id="tree" class="tree" role="tree" aria-label="Markdown files"></ul>
     </nav>
-    <main id="content" class="content">
+    <!-- Focusable so keyboard scrolling (vim keys, arrows, Page Down) targets
+         the document after a file is opened with the mouse. -->
+    <main id="content" class="content" tabindex="0" aria-label="Document">
       <article id="doc" class="markdown-body">
         <p class="placeholder">Select a file from the tree.</p>
       </article>
     </main>
   </div>
+  <div id="find-bar" class="find-bar" hidden>
+    <label for="find-input">/</label>
+    <input id="find-input" type="text" autocomplete="off" spellcheck="false"
+           aria-label="Find in document" placeholder="Find in document">
+  </div>
+  <dialog id="help-dialog" class="help-dialog" aria-labelledby="help-title">
+    <h2 id="help-title">Keyboard shortcuts</h2>
+    <table>
+      <tbody>
+        <tr><td><kbd>j</kbd> / <kbd>k</kbd></td><td>Scroll down / up</td></tr>
+        <tr><td><kbd>d</kbd> / <kbd>u</kbd>, <kbd>Ctrl</kbd>+<kbd>d</kbd> / <kbd>Ctrl</kbd>+<kbd>u</kbd></td><td>Half page down / up</td></tr>
+        <tr><td><kbd>g</kbd><kbd>g</kbd> / <kbd>G</kbd></td><td>Top / bottom of the document</td></tr>
+        <tr><td><kbd>/</kbd></td><td>Find in document (Enter keeps matches, Esc cancels)</td></tr>
+        <tr><td><kbd>n</kbd> / <kbd>N</kbd></td><td>Next / previous match</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>Clear find highlights</td></tr>
+        <tr><td><kbd>j</kbd> <kbd>k</kbd> <kbd>h</kbd> <kbd>l</kbd> or arrows</td><td>Move in the file tree (when it has focus)</td></tr>
+        <tr><td><kbd>Enter</kbd></td><td>Open file / toggle folder in the tree</td></tr>
+        <tr><td><kbd>?</kbd></td><td>This help</td></tr>
+      </tbody>
+    </table>
+    <p class="help-note">Find is smartcase: case-insensitive unless the query contains a capital letter.</p>
+    <form method="dialog"><button type="submit">Close</button></form>
+  </dialog>
 </body>
 </html>

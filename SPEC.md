@@ -145,6 +145,19 @@ paths get `400`, and paths that are missing or not indexed get `404`.
   scroll position.
 - Keyboard: arrow keys move through the tree, and Enter opens. Uses ARIA
   `tree`/`treeitem` roles.
+- **Vim keys** (when focus isn't in a text field): `j`/`k` scroll 60px,
+  `d`/`u` and `Ctrl-d`/`Ctrl-u` half a page, `gg`/`G` top/bottom, `?` help.
+  In the tree, `j`/`k`/`h`/`l` act as arrow keys. Opening a file with the mouse
+  focuses the document so the keys scroll it.
+- **Find in document:** `/` opens an incremental find bar; matching is literal
+  and smartcase, and can span element boundaries (highlighted code tokens).
+  Matches are painted with the CSS Custom Highlight API (no DOM changes);
+  `Enter` keeps them, `n`/`N` step with wrap-around starting from the visible
+  area, `Esc` clears. The last query survives switching documents. This is
+  in-document find only; cross-file content search stays a non-goal.
+- **Code line numbers:** CSS counters on one span per line (chroma emits these;
+  the frontend adds them to plain blocks), so they are never copied. On by
+  default, toggled from the toolbar and saved in `localStorage`.
 - **Layout:** the rendered document uses the full width of the content pane.
   Tables wider than the pane scroll horizontally inside it; short cells stay on
   one line, and prose-length cells (over 60 characters) wrap at a 24em minimum

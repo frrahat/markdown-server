@@ -63,7 +63,14 @@ bin/mdserver [flags] <root-dir>
     keeps open folders open.
   - **Reload** re-reads the current file from disk, and keeps your scroll
     position.
-- **Keyboard navigation** in the tree: arrow keys, Home/End, Enter.
+- **Vim keys for reading.** `j`/`k` scroll, `d`/`u` (or `Ctrl-d`/`Ctrl-u`)
+  scroll half a page, `gg`/`G` jump to top/bottom, `/` finds in the current
+  document (smartcase, incremental), `n`/`N` step through matches, `Esc`
+  clears them, `?` lists all shortcuts.
+- **Keyboard navigation** in the tree: arrow keys or `j`/`k`/`h`/`l`,
+  Home/End, Enter.
+- **Line numbers** in code blocks, on by default and toggled from the toolbar.
+  They're drawn by CSS, so copying code never copies the numbers.
 - **Dark theme.** Follows the OS setting by default; the toolbar button cycles
   Auto → Light → Dark, and the choice is remembered in the browser. Code
   highlighting and Mermaid diagrams switch with it.

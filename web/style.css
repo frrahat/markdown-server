@@ -98,6 +98,10 @@ button {
 }
 button:hover:not(:disabled) { background: var(--hover-bg); }
 button:disabled { opacity: 0.5; cursor: default; }
+button[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
 
 /* ---- Layout ---- */
 
@@ -119,6 +123,7 @@ button:disabled { opacity: 0.5; cursor: default; }
 .content {
   overflow: auto;
   padding: 24px 40px 64px;
+  outline: none;
 }
 
 /* ---- Tree ---- */
@@ -265,3 +270,76 @@ button:disabled { opacity: 0.5; cursor: default; }
 .markdown-body li > input[type="checkbox"] { margin: 0 0.3em 0 -1.3em; }
 
 .markdown-body .footnotes { font-size: 85%; color: var(--muted); }
+
+/* ---- Code line numbers ---- */
+
+.line-numbers .markdown-body pre > code { counter-reset: code-line; }
+.line-numbers .markdown-body pre > code > .line::before {
+  counter-increment: code-line;
+  content: counter(code-line);
+  display: inline-block;
+  width: var(--line-number-width, 2ch);
+  margin-right: 1.5em;
+  text-align: right;
+  color: var(--muted);
+  opacity: 0.7;
+  user-select: none;
+}
+
+/* ---- Find ---- */
+
+::highlight(find-match) {
+  background-color: rgba(255, 200, 0, 0.4);
+}
+::highlight(find-current) {
+  background-color: #ff9632;
+  color: #000;
+}
+
+.find-bar {
+  position: fixed;
+  right: 24px;
+  bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.find-bar[hidden] { display: none; }
+.find-bar input {
+  width: 260px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: inherit;
+  background: var(--bg);
+  font: inherit;
+}
+
+/* ---- Help ---- */
+
+.help-dialog {
+  max-width: 560px;
+  padding: 20px 24px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--fg);
+  background: var(--bg);
+}
+.help-dialog::backdrop { background: rgba(0, 0, 0, 0.4); }
+.help-dialog h2 { margin-top: 0; font-size: 18px; }
+.help-dialog td { padding: 4px 12px 4px 0; vertical-align: top; font-size: 14px; }
+.help-dialog .help-note { color: var(--muted); font-size: 13px; }
+.help-dialog kbd {
+  padding: 1px 5px;
+  font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--surface);
+}
