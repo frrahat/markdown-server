@@ -90,7 +90,7 @@ paths get `400`, and paths that are missing or not indexed get `404`.
 | GET | `/` and static assets | UI shell (embedded) | HTML/JS/CSS |
 | GET | `/api/tree?path=<dir>` | Direct children of `dir` (`""` = root) | `{"path","children":[{"name","path","type":"dir"\|"file"}],"generation","indexedAt"}` |
 | POST | `/api/refresh` | Rescan and swap the index | `{"generation","indexedAt","files","dirs","durationMs"}` |
-| GET | `/api/doc?path=<file>` | Read from disk **on every request**, render | `{"path","html","modTime","size"}` |
+| GET | `/api/doc?path=<file>` | Read from disk **on every request**, render | `{"path","html","source","modTime","size"}` |
 | GET | `/api/files?q=<query>&limit=<n>` | Fuzzy-filter all indexed file paths (limit default 50, max 200) | `{"query","total","files":[{"path","positions"}],"generation"}` |
 | GET | `/raw/<path>` | Serve a file under the root, for relative images | file bytes with a sniffed Content-Type |
 
@@ -167,8 +167,13 @@ paths get `400`, and paths that are missing or not indexed get `404`.
   area, `Esc` clears. The last query survives switching documents. This is
   in-document find only; cross-file content search stays a non-goal.
 - **Code line numbers:** CSS counters on one span per line (chroma emits these;
-  the frontend adds them to plain blocks), so they are never copied. On by
-  default, toggled from the toolbar and saved in `localStorage`.
+  the frontend adds them to plain blocks), so they are never copied. Always on.
+- **Source view:** the toolbar's Source toggle replaces the rendered document
+  with the raw markdown (from `/api/doc`'s `source`, inserted as text), one
+  numbered line per source line, wrapping long lines. Off by default, saved in
+  `localStorage`.
+- **Copy:** copies `source` with the Clipboard API (secure contexts only:
+  localhost or HTTPS).
 - **Layout:** the rendered document uses the full width of the content pane.
   Tables wider than the pane scroll horizontally inside it; short cells stay on
   one line, and prose-length cells (over 60 characters) wrap at a 24em minimum

@@ -28,6 +28,11 @@ func TestDoc(t *testing.T) {
 		strings.Contains(doc.HTML, "<script") {
 		t.Errorf("unexpected html: %s", doc.HTML)
 	}
+	// The source is returned verbatim and unsanitized. The page inserts it
+	// only as text, so it needs no sanitizing.
+	if doc.Source != "# Guide\n\n[next](next.md) <script>x()</script>\n" {
+		t.Errorf("source = %q", doc.Source)
+	}
 
 	// No caching anywhere: an edit shows up on the very next request.
 	writeFile(t, root, "docs/guide.md", "# Edited\n")

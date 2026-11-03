@@ -15,6 +15,7 @@ import (
 type docResponse struct {
 	Path    string    `json:"path"`
 	HTML    string    `json:"html"`
+	Source  string    `json:"source"`
 	ModTime time.Time `json:"modTime"`
 	Size    int64     `json:"size"`
 }
@@ -72,6 +73,7 @@ func (s *Server) handleDoc(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, docResponse{
 		Path:    docPath,
 		HTML:    string(html),
+		Source:  string(source),
 		ModTime: info.ModTime(),
 		Size:    int64(len(source)),
 	})

@@ -75,8 +75,12 @@ bin/mdserver [flags] <root-dir>
   file list.
 - **Keyboard navigation** in the tree: arrow keys or `j`/`k`/`h`/`l`,
   Home/End, Enter.
-- **Line numbers** in code blocks, on by default and toggled from the toolbar.
-  They're drawn by CSS, so copying code never copies the numbers.
+- **Line numbers** in code blocks. They're drawn by CSS, so copying code never
+  copies the numbers.
+- **Source view.** The toolbar's Source button shows the raw markdown with a
+  line number on every line; the choice is remembered in the browser.
+- **Copy** puts the document's markdown source on the clipboard. Browsers
+  allow this only on `localhost` or HTTPS.
 - **Dark theme.** Follows the OS setting by default; the toolbar button cycles
   Auto → Light → Dark, and the choice is remembered in the browser. Code
   highlighting and Mermaid diagrams switch with it.
@@ -105,7 +109,7 @@ you cloned but didn't write.
 | Method | Path | Returns |
 |---|---|---|
 | `GET` | `/api/tree?path=<dir>` | Direct children of a folder (`""` is the root) |
-| `GET` | `/api/doc?path=<file>` | Rendered HTML for a file, read fresh from disk |
+| `GET` | `/api/doc?path=<file>` | Rendered HTML and markdown source for a file, read fresh from disk |
 | `GET` | `/api/files?q=<query>&limit=<n>` | Fuzzy-matched file paths with matched character positions (default 50, max 200) |
 | `POST` | `/api/refresh` | Rescans the directory; returns file/dir counts and duration |
 | `GET` | `/raw/<path>` | A file under the root, such as an image a document references |

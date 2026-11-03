@@ -98,6 +98,23 @@ button {
 }
 button:hover:not(:disabled) { background: var(--hover-bg); }
 button:disabled { opacity: 0.5; cursor: default; }
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 7px;
+}
+.icon-button svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+#theme-toggle:not([data-choice="auto"]) [data-theme-icon="auto"],
+#theme-toggle:not([data-choice="light"]) [data-theme-icon="light"],
+#theme-toggle:not([data-choice="dark"]) [data-theme-icon="dark"] { display: none; }
 button[aria-pressed="true"] {
   border-color: var(--accent);
   color: var(--accent);
@@ -271,10 +288,10 @@ button[aria-pressed="true"] {
 
 .markdown-body .footnotes { font-size: 85%; color: var(--muted); }
 
-/* ---- Code line numbers ---- */
+/* ---- Line numbers (code blocks and source view) ---- */
 
-.line-numbers .markdown-body pre > code { counter-reset: code-line; }
-.line-numbers .markdown-body pre > code > .line::before {
+.markdown-body pre > code { counter-reset: code-line; }
+.markdown-body pre > code > .line::before {
   counter-increment: code-line;
   content: counter(code-line);
   display: inline-block;
@@ -285,6 +302,17 @@ button[aria-pressed="true"] {
   opacity: 0.7;
   user-select: none;
 }
+
+/* Markdown paragraphs are often one long line, so the source view wraps.
+   The grid keeps wrapped text in its own column instead of flowing back
+   under the line number. */
+.markdown-body pre.source-view { white-space: pre-wrap; overflow-wrap: anywhere; }
+.markdown-body pre.source-view > code > .line {
+  display: grid;
+  grid-template-columns: var(--line-number-width, 2ch) 1fr;
+  column-gap: 1.5em;
+}
+.markdown-body pre.source-view > code > .line::before { width: auto; margin-right: 0; }
 
 /* ---- Find ---- */
 

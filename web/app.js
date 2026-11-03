@@ -8,6 +8,7 @@ const docPathLabel = document.getElementById("doc-path");
 const statusLabel = document.getElementById("status");
 const reloadButton = document.getElementById("reload-doc");
 const refreshButton = document.getElementById("refresh-tree");
+const copyButton = document.getElementById("copy-source");
 
 // dirPath -> Promise<entries>. Promises rather than results so two quick
 // expands of the same folder share one request.
@@ -16,11 +17,14 @@ const childrenCache = new Map();
 const treeItemsByPath = new Map();
 
 let currentDocPath = null;
+// The last loaded /api/doc response, kept so toggling the source view
+// re-renders without another request.
+let currentDoc = null;
 // Incremented per doc load so a slow response can't overwrite a newer one.
 let latestDocRequest = 0;
 
 const themeToggle = document.getElementById("theme-toggle");
-const lineNumbersToggle = document.getElementById("line-numbers-toggle");
+const sourceViewToggle = document.getElementById("source-view-toggle");
 const helpDialog = document.getElementById("help-dialog");
 
 async function fetchJSON(url, options) {
@@ -357,7 +361,9 @@ async function openDoc(path, anchor, { keepScroll = false } = {}) {
   } catch (error) {
     if (requestId !== latestDocRequest) return;
     currentDocPath = null;
+    currentDoc = null;
     reloadButton.disabled = true;
+    copyButton.disabled = true;
     docPathLabel.textContent = path;
     const message = document.createElement("p");
     message.className = "error";
@@ -368,15 +374,15 @@ async function openDoc(path, anchor, { keepScroll = false } = {}) {
   }
   if (requestId !== latestDocRequest) return;
 
-  docArticle.replaceChildren(prepareDocContent(doc.html, path));
   currentDocPath = path;
+  currentDoc = doc;
   reloadButton.disabled = false;
+  copyButton.disabled = false;
   docPathLabel.textContent = path;
   document.title = `${path.split("/").pop()} — mdserver`;
   showStatus("");
 
-  await renderDiagrams();
-  vim.documentChanged();
+  await showCurrentDoc();
   if (keepScroll) {
     contentPane.scrollTop = savedScroll;
   } else if (anchor) {
@@ -385,6 +391,29 @@ async function openDoc(path, anchor, { keepScroll = false } = {}) {
     contentPane.scrollTop = 0;
   }
   revealInTree(path);
+}
+
+async function showCurrentDoc() {
+  if (sourceViewEnabled) {
+    docArticle.replaceChildren(buildSourceView(currentDoc.source));
+  } else {
+    docArticle.replaceChildren(prepareDocContent(currentDoc.html, currentDoc.path));
+    await renderDiagrams();
+  }
+  vim.documentChanged();
+}
+
+// The source goes in as text, never as HTML, so it needs no sanitizing.
+function buildSourceView(source) {
+  const fragment = document.createDocumentFragment();
+  const pre = document.createElement("pre");
+  pre.className = "source-view";
+  const code = document.createElement("code");
+  code.textContent = source;
+  pre.append(code);
+  fragment.append(pre);
+  prepareCodeLines(fragment);
+  return fragment;
 }
 
 // Diagrams are rendered one by one with ids from our own counter: mermaid's
@@ -442,8 +471,8 @@ function prepareDocContent(html, docPath) {
 
 // Line numbers are drawn by CSS counters on per-line spans, so copying code
 // never copies the numbers. Highlighted blocks already have a span.line per
-// line; plain blocks (no language) get them here. The number column is sized
-// to the block's line count.
+// line; plain blocks (no language) and the source view get them here. The
+// number column is sized to the block's line count.
 function prepareCodeLines(root) {
   for (const code of root.querySelectorAll("pre:not(.mermaid) > code")) {
     if (!code.querySelector(":scope > .line") && code.children.length === 0) {
@@ -519,35 +548,51 @@ docArticle.addEventListener("click", (event) => {
   }
 });
 
-// ---- Line numbers ----
+// ---- Source view and copy ----
 
-const lineNumbersStorageKey = "mdserver-line-numbers";
+const sourceViewStorageKey = "mdserver-source-view";
 
-function lineNumbersEnabled() {
+function savedSourceView() {
   try {
-    return localStorage.getItem(lineNumbersStorageKey) !== "off";
+    return localStorage.getItem(sourceViewStorageKey) === "on";
   } catch {
-    return true;
+    return false;
   }
 }
 
-function applyLineNumbers(enabled) {
-  document.documentElement.classList.toggle("line-numbers", enabled);
-  lineNumbersToggle.setAttribute("aria-pressed", String(enabled));
-}
+let sourceViewEnabled = savedSourceView();
+sourceViewToggle.setAttribute("aria-pressed", String(sourceViewEnabled));
 
-lineNumbersToggle.addEventListener("click", () => {
-  const enabled = !document.documentElement.classList.contains("line-numbers");
-  applyLineNumbers(enabled);
+sourceViewToggle.addEventListener("click", async () => {
+  sourceViewEnabled = !sourceViewEnabled;
+  sourceViewToggle.setAttribute("aria-pressed", String(sourceViewEnabled));
   try {
-    if (enabled) localStorage.removeItem(lineNumbersStorageKey);
-    else localStorage.setItem(lineNumbersStorageKey, "off");
+    if (sourceViewEnabled) localStorage.setItem(sourceViewStorageKey, "on");
+    else localStorage.removeItem(sourceViewStorageKey);
   } catch {
     // Not persisting is acceptable.
   }
+  if (!currentDoc) return;
+  await showCurrentDoc();
+  contentPane.scrollTop = 0;
 });
 
-applyLineNumbers(lineNumbersEnabled());
+copyButton.addEventListener("click", async () => {
+  if (!currentDoc) return;
+  // Browsers expose the Clipboard API only in secure contexts, so it is
+  // missing when the page is opened over plain HTTP on a non-localhost
+  // address.
+  if (!navigator.clipboard) {
+    showStatus("Copy needs localhost or HTTPS", true);
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(currentDoc.source);
+    showStatus("Copied markdown to the clipboard");
+  } catch (error) {
+    showStatus(`Copy failed: ${error.message}`, true);
+  }
+});
 
 // ---- Vim keys and help ----
 
@@ -580,15 +625,22 @@ const vim = installVimKeys({
 // from theme.js, which runs before first paint.
 
 const themeOrder = ["auto", "light", "dark"];
-const themeLabels = { auto: "Theme: Auto", light: "Theme: Light", dark: "Theme: Dark" };
+const themeLabels = { auto: "Auto", light: "Light", dark: "Dark" };
 let themeChoice = savedThemeChoice();
 
+function nextThemeChoice() {
+  return themeOrder[(themeOrder.indexOf(themeChoice) + 1) % themeOrder.length];
+}
+
 function updateThemeToggle() {
-  themeToggle.textContent = themeLabels[themeChoice];
+  themeToggle.dataset.choice = themeChoice;
+  const label = `Theme: ${themeLabels[themeChoice]} (click for ${themeLabels[nextThemeChoice()]})`;
+  themeToggle.title = label;
+  themeToggle.setAttribute("aria-label", label);
 }
 
 themeToggle.addEventListener("click", () => {
-  themeChoice = themeOrder[(themeOrder.indexOf(themeChoice) + 1) % themeOrder.length];
+  themeChoice = nextThemeChoice();
   saveThemeChoice(themeChoice);
   applyTheme(themeChoice);
   updateThemeToggle();
