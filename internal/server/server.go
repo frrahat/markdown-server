@@ -50,6 +50,7 @@ func New(cfg Config) (*Server, error) {
 	s.staticAssets = assets
 	s.mux.HandleFunc("GET /api/tree", s.handleTree)
 	s.mux.HandleFunc("GET /api/doc", s.handleDoc)
+	s.mux.HandleFunc("GET /api/files", s.handleFiles)
 	s.mux.HandleFunc("POST /api/refresh", s.handleRefresh)
 	s.mux.HandleFunc("GET /raw/{path...}", s.handleRaw)
 	s.mux.HandleFunc("GET /", s.handleStatic)

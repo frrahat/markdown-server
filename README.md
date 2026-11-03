@@ -67,6 +67,12 @@ bin/mdserver [flags] <root-dir>
   scroll half a page, `gg`/`G` jump to top/bottom, `/` finds in the current
   document (smartcase, incremental), `n`/`N` step through matches, `Esc`
   clears them, `?` lists all shortcuts.
+- **Fuzzy file filter.** `Ctrl-p` (or the box above the tree) filters every
+  file by path, fzf-style: letters in order, ranked by word boundaries,
+  consecutive runs and file-name matches; space-separated words must all
+  match. Arrows or `Ctrl-n`/`Ctrl-p` move, Enter opens, Esc returns to the
+  tree. Matching runs on the server, so the browser never downloads the full
+  file list.
 - **Keyboard navigation** in the tree: arrow keys or `j`/`k`/`h`/`l`,
   Home/End, Enter.
 - **Line numbers** in code blocks, on by default and toggled from the toolbar.
@@ -100,6 +106,7 @@ you cloned but didn't write.
 |---|---|---|
 | `GET` | `/api/tree?path=<dir>` | Direct children of a folder (`""` is the root) |
 | `GET` | `/api/doc?path=<file>` | Rendered HTML for a file, read fresh from disk |
+| `GET` | `/api/files?q=<query>&limit=<n>` | Fuzzy-matched file paths with matched character positions (default 50, max 200) |
 | `POST` | `/api/refresh` | Rescans the directory; returns file/dir counts and duration |
 | `GET` | `/raw/<path>` | A file under the root, such as an image a document references |
 
@@ -108,6 +115,7 @@ you cloned but didn't write.
 ```
 cmd/mdserver/       CLI flags, startup scan, HTTP server
 internal/index/     directory scan, .gitignore rules, in-memory index, refresh
+internal/fuzzy/     fzf-style path matching and scoring
 internal/render/    Markdown → HTML, link rewriting, sanitizer, mermaid passthrough
 internal/server/    HTTP handlers, Host guard, embedded static files
 internal/pathsafe/  validation of user-supplied paths

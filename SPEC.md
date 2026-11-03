@@ -35,7 +35,8 @@ leaving the browser.
 ### Non-goals (v1)
 
 - Editing files, auth, multiple users, network exposure
-- Full-text content search, or filtering the tree by content
+- Full-text content search, or filtering the tree by content (fuzzy filtering
+  by file *path* is supported)
 - Live push updates (file watching or websockets). Refresh is manual.
 - Multiple root directories. Could be added later as top-level tree nodes.
 
@@ -90,6 +91,7 @@ paths get `400`, and paths that are missing or not indexed get `404`.
 | GET | `/api/tree?path=<dir>` | Direct children of `dir` (`""` = root) | `{"path","children":[{"name","path","type":"dir"\|"file"}],"generation","indexedAt"}` |
 | POST | `/api/refresh` | Rescan and swap the index | `{"generation","indexedAt","files","dirs","durationMs"}` |
 | GET | `/api/doc?path=<file>` | Read from disk **on every request**, render | `{"path","html","modTime","size"}` |
+| GET | `/api/files?q=<query>&limit=<n>` | Fuzzy-filter all indexed file paths (limit default 50, max 200) | `{"query","total","files":[{"path","positions"}],"generation"}` |
 | GET | `/raw/<path>` | Serve a file under the root, for relative images | file bytes with a sniffed Content-Type |
 
 - `/api/doc` accepts only files that are in the current index. Files over 5 MB
@@ -145,6 +147,15 @@ paths get `400`, and paths that are missing or not indexed get `404`.
   scroll position.
 - Keyboard: arrow keys move through the tree, and Enter opens. Uses ARIA
   `tree`/`treeitem` roles.
+- **Fuzzy file filter:** a box above the tree (`Ctrl-p` focuses it). Matching
+  runs server-side over the index's flat file list (`internal/fuzzy`):
+  subsequence match per space-separated term, smartcase, scored with bonuses
+  for segment/camelCase boundaries, consecutive runs and matches within the
+  file name, and gap penalties. Positions are code-point offsets for
+  highlighting. Requests are debounced (60 ms) and stale ones aborted. While
+  the filter has text, ranked results replace the tree; arrows or
+  `Ctrl-n`/`Ctrl-p` move, Enter opens (running any pending search first), Esc
+  clears. About 6–13 ms per query over 50k paths.
 - **Vim keys** (when focus isn't in a text field): `j`/`k` scroll 60px,
   `d`/`u` and `Ctrl-d`/`Ctrl-u` half a page, `gg`/`G` top/bottom, `?` help.
   In the tree, `j`/`k`/`h`/`l` act as arrow keys. Opening a file with the mouse
@@ -202,6 +213,7 @@ internal/index/          → walk, ignore rules, pruning, Index type, refresh co
 internal/render/         → goldmark setup, link-rewrite transformer, mermaid passthrough
 internal/server/         → HTTP handlers, path validation, Host guard
 internal/pathsafe/       → resolve and validate user-supplied relative paths (shared)
+internal/fuzzy/          → fzf-style path matching and scoring for the file filter
 web/                     → index.html, app.js, style.css, vendor/mermaid.min.js, embed.go
 testdata/                → fixture markdown trees used by tests
 SPEC.md                  → this document

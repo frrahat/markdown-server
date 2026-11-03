@@ -1,3 +1,4 @@
+import { installFileFilter } from "/filter.js";
 import { installVimKeys } from "/vim.js";
 
 const treeRoot = document.getElementById("tree");
@@ -288,6 +289,7 @@ async function refreshTree() {
 
     if (currentDocPath) selectTreeItem(treeItemsByPath.get(currentDocPath));
     treeRoot.parentElement.scrollTop = sidebarScroll;
+    fileFilter.refresh();
     showStatus(`Indexed ${result.files} files in ${result.durationMs} ms`);
   } catch (error) {
     showStatus(`Refresh failed: ${error.message}`, true);
@@ -550,6 +552,18 @@ applyLineNumbers(lineNumbersEnabled());
 // ---- Vim keys and help ----
 
 document.getElementById("help-button").addEventListener("click", () => helpDialog.showModal());
+
+const fileFilter = installFileFilter({
+  filterInput: document.getElementById("file-filter"),
+  resultsList: document.getElementById("filter-results"),
+  summary: document.getElementById("filter-summary"),
+  treeRoot,
+  fetchJSON,
+  openFile(path) {
+    navigateTo(path);
+    contentPane.focus({ preventScroll: true });
+  },
+});
 
 const vim = installVimKeys({
   contentPane,

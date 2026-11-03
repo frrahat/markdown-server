@@ -35,6 +35,7 @@ type Index struct {
 	ScanDuration time.Duration
 
 	childrenByDir map[string][]Entry
+	filePaths     []string
 	ignoreMatcher gitignore.Matcher
 }
 
@@ -45,6 +46,12 @@ type Index struct {
 func (idx *Index) Children(dirPath string) (entries []Entry, found bool) {
 	entries, found = idx.childrenByDir[dirPath]
 	return entries, found
+}
+
+// FilePaths returns every indexed markdown file path in lexical order. The
+// slice is shared; callers must not modify it.
+func (idx *Index) FilePaths() []string {
+	return idx.filePaths
 }
 
 // HasFile reports whether filePath is an indexed markdown file.

@@ -33,6 +33,13 @@
   </header>
   <div class="layout">
     <nav class="sidebar" aria-label="Files">
+      <div class="filter">
+        <input id="file-filter" type="text" role="combobox" aria-label="Filter files"
+               aria-controls="filter-results" aria-expanded="false" aria-autocomplete="list"
+               autocomplete="off" spellcheck="false" placeholder="Filter files (Ctrl-P)">
+      </div>
+      <p id="filter-summary" class="filter-summary" aria-live="polite" hidden></p>
+      <ul id="filter-results" class="filter-results" role="listbox" aria-label="Matching files" hidden></ul>
       <ul id="tree" class="tree" role="tree" aria-label="Markdown files"></ul>
     </nav>
     <!-- Focusable so keyboard scrolling (vim keys, arrows, Page Down) targets
@@ -58,6 +65,7 @@
         <tr><td><kbd>/</kbd></td><td>Find in document (Enter keeps matches, Esc cancels)</td></tr>
         <tr><td><kbd>n</kbd> / <kbd>N</kbd></td><td>Next / previous match</td></tr>
         <tr><td><kbd>Esc</kbd></td><td>Clear find highlights</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>p</kbd></td><td>Fuzzy-filter files by path; arrows or <kbd>Ctrl</kbd>+<kbd>n</kbd>/<kbd>p</kbd> to move, Enter to open, Esc to clear</td></tr>
         <tr><td><kbd>j</kbd> <kbd>k</kbd> <kbd>h</kbd> <kbd>l</kbd> or arrows</td><td>Move in the file tree (when it has focus)</td></tr>
         <tr><td><kbd>Enter</kbd></td><td>Open file / toggle folder in the tree</td></tr>
         <tr><td><kbd>?</kbd></td><td>This help</td></tr>

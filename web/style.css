@@ -117,7 +117,7 @@ button[aria-pressed="true"] {
 .sidebar {
   overflow: auto;
   border-right: 1px solid var(--border);
-  padding: 8px 0;
+  padding: 0 0 8px;
 }
 
 .content {
@@ -342,4 +342,61 @@ button[aria-pressed="true"] {
   border-bottom-width: 2px;
   border-radius: 4px;
   background: var(--surface);
+}
+
+/* ---- File filter ---- */
+
+.filter {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 8px;
+  background: var(--bg);
+}
+.filter input {
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: inherit;
+  background: var(--bg);
+  font: inherit;
+  font-size: 13px;
+}
+.filter input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+.filter-summary {
+  margin: 0;
+  padding: 0 12px 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.filter-summary[hidden], .filter-results[hidden], .tree[hidden] { display: none; }
+
+.filter-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.filter-results [role="option"] {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 18px;
+}
+.filter-results [role="option"]:hover { background: var(--hover-bg); }
+.filter-results [role="option"][aria-selected="true"] { background: var(--selected-bg); }
+.filter-results .result-dir {
+  color: var(--muted);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.filter-results mark {
+  color: var(--accent);
+  background: none;
+  font-weight: 600;
 }

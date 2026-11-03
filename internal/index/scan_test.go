@@ -58,6 +58,11 @@ func TestScanTreeShape(t *testing.T) {
 	if idx.DirCount != 6 {
 		t.Errorf("DirCount = %d, want 6", idx.DirCount)
 	}
+	wantFiles := []string{".github/CONTRIBUTING.md", "Alpha.MD", "Beta/b.md", "README.md", "docs/deep/nested/leaf.md",
+		"docs/guide.md", "notes.markdown", "sub/keep.md", "zeta.md"}
+	if !slices.Equal(idx.FilePaths(), wantFiles) {
+		t.Errorf("FilePaths = %v\nwant %v", idx.FilePaths(), wantFiles)
+	}
 	if !idx.HasFile("docs/deep/nested/leaf.md") || !idx.HasFile("README.md") {
 		t.Error("HasFile missing an indexed file")
 	}

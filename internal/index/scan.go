@@ -52,9 +52,10 @@ func Scan(root string, opts Options) (*Index, error) {
 	return &Index{
 		IndexedAt:     time.Now(),
 		ScanDuration:  time.Since(scanStart),
-		FileCount:     scanner.fileCount,
+		FileCount:     len(scanner.filePaths),
 		DirCount:      len(scanner.childrenByDir) - 1,
 		childrenByDir: scanner.childrenByDir,
+		filePaths:     scanner.sortedFilePaths(),
 		ignoreMatcher: gitignore.NewMatcher(scanner.allIgnorePatterns),
 	}, nil
 }
@@ -64,7 +65,7 @@ type scanner struct {
 	extensions    []string
 	logger        *slog.Logger
 	childrenByDir map[string][]Entry
-	fileCount     int
+	filePaths     []string
 	// allIgnorePatterns collects every .gitignore pattern seen, for
 	// Index.IsServable. Each pattern is scoped to its directory by its domain.
 	allIgnorePatterns []gitignore.Pattern
@@ -118,7 +119,7 @@ func (s *scanner) walkDir(relDir string, ancestorPatterns []gitignore.Pattern) b
 				continue
 			}
 			children = append(children, Entry{Name: name, Path: childPath, Type: EntryFile})
-			s.fileCount++
+			s.filePaths = append(s.filePaths, childPath)
 		}
 	}
 	if len(children) == 0 {
@@ -154,6 +155,14 @@ func (s *scanner) readIgnoreFile(absDir, relDir string, dirSegments []string, di
 		patterns = append(patterns, gitignore.ParsePattern(line, dirSegments))
 	}
 	return patterns
+}
+
+func (s *scanner) sortedFilePaths() []string {
+	slices.Sort(s.filePaths)
+	if s.filePaths == nil {
+		return []string{}
+	}
+	return s.filePaths
 }
 
 func (s *scanner) isMarkdown(name string) bool {
