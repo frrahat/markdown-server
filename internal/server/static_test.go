@@ -24,6 +24,7 @@ func TestStaticAssets(t *testing.T) {
 		{"/vim.js", "text/javascript; charset=utf-8", "installVimKeys"},
 		{"/filter.js", "text/javascript; charset=utf-8", "installFileFilter"},
 		{"/vendor/mermaid.min.js", "text/javascript; charset=utf-8", "mermaid"},
+		{"/favicon.svg", "image/svg+xml", "<svg"},
 	}
 	for _, tc := range tests {
 		recorder := httptest.NewRecorder()
