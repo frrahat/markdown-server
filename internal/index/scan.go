@@ -6,14 +6,21 @@ import (
 	"cmp"
 	"fmt"
 	"log/slog"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
 )
+
+// maxConcurrentDirReads bounds how many directories are read at once. Scan
+// time is almost entirely ReadDir syscalls; benchmarked on an SSD with a warm
+// file cache, the speedup levels off around 8 concurrent reads.
+const maxConcurrentDirReads = 8
 
 // alwaysSkippedDirs are skipped regardless of .gitignore: .git holds no docs
 // and node_modules is often huge and frequently not gitignored in subprojects.
@@ -38,10 +45,12 @@ func Scan(root string, opts Options) (*Index, error) {
 		return nil, fmt.Errorf("scan root: %w", err)
 	}
 	scanner := &scanner{
-		root:          root,
-		extensions:    opts.Extensions,
-		logger:        cmp.Or(opts.Logger, slog.Default()),
-		childrenByDir: make(map[string][]Entry),
+		root:                root,
+		extensions:          opts.Extensions,
+		logger:              cmp.Or(opts.Logger, slog.Default()),
+		walkSlots:           make(chan struct{}, maxConcurrentDirReads-1),
+		childrenByDir:       make(map[string][]Entry),
+		ignorePatternsByDir: make(map[string][]gitignore.Pattern),
 	}
 	scanner.walkDir("", nil)
 	// The root is always listed, even when it has no markdown, so the UI gets
@@ -56,19 +65,25 @@ func Scan(root string, opts Options) (*Index, error) {
 		DirCount:      len(scanner.childrenByDir) - 1,
 		childrenByDir: scanner.childrenByDir,
 		filePaths:     scanner.sortedFilePaths(),
-		ignoreMatcher: gitignore.NewMatcher(scanner.allIgnorePatterns),
+		ignoreMatcher: gitignore.NewMatcher(scanner.allIgnorePatterns()),
 	}, nil
 }
 
 type scanner struct {
-	root          string
-	extensions    []string
-	logger        *slog.Logger
+	root       string
+	extensions []string
+	logger     *slog.Logger
+	// walkSlots has one slot per goroutine allowed to walk alongside the one
+	// running Scan, so at most maxConcurrentDirReads directories are read at
+	// once.
+	walkSlots chan struct{}
+
+	mu            sync.Mutex // guards the fields below
 	childrenByDir map[string][]Entry
 	filePaths     []string
-	// allIgnorePatterns collects every .gitignore pattern seen, for
-	// Index.IsServable. Each pattern is scoped to its directory by its domain.
-	allIgnorePatterns []gitignore.Pattern
+	// ignorePatternsByDir holds each directory's .gitignore patterns, for
+	// Index.IsServable.
+	ignorePatternsByDir map[string][]gitignore.Pattern
 }
 
 // walkDir records relDir's markdown children and reports whether relDir has
@@ -88,18 +103,19 @@ func (s *scanner) walkDir(relDir string, ancestorPatterns []gitignore.Pattern) b
 
 	dirSegments := splitSegments(relDir)
 	patterns := ancestorPatterns
-	if localPatterns := s.readIgnoreFile(absDir, relDir, dirSegments, dirEntries); len(localPatterns) > 0 {
+	localPatterns := s.readIgnoreFile(absDir, relDir, dirSegments, dirEntries)
+	if len(localPatterns) > 0 {
 		// Clip before appending so sibling directories never share (and
 		// overwrite) the same backing array.
 		patterns = append(slices.Clip(ancestorPatterns), localPatterns...)
-		s.allIgnorePatterns = append(s.allIgnorePatterns, localPatterns...)
 	}
 	ignoreMatcher := gitignore.NewMatcher(patterns)
 
 	var children []Entry
+	var localFilePaths []string
+	var subdirNames []string
 	for _, dirEntry := range dirEntries {
 		name := dirEntry.Name()
-		childPath := joinRel(relDir, name)
 		if dirEntry.Type()&os.ModeSymlink != 0 {
 			continue
 		}
@@ -108,26 +124,69 @@ func (s *scanner) walkDir(relDir string, ancestorPatterns []gitignore.Pattern) b
 		}
 		switch {
 		case dirEntry.IsDir():
-			if alwaysSkippedDirs[name] {
-				continue
-			}
-			if s.walkDir(childPath, patterns) {
-				children = append(children, Entry{Name: name, Path: childPath, Type: EntryDir})
+			if !alwaysSkippedDirs[name] {
+				subdirNames = append(subdirNames, name)
 			}
 		case dirEntry.Type().IsRegular():
 			if strings.HasPrefix(name, ".") || !s.isMarkdown(name) {
 				continue
 			}
+			childPath := joinRel(relDir, name)
 			children = append(children, Entry{Name: name, Path: childPath, Type: EntryFile})
-			s.filePaths = append(s.filePaths, childPath)
+			localFilePaths = append(localFilePaths, childPath)
 		}
+	}
+
+	// When no slot is free, walk the subdirectory on this goroutine. Otherwise,
+	// with every slot held by a parent waiting for its children, blocking for
+	// a slot would deadlock.
+	subdirHasMarkdown := make([]bool, len(subdirNames))
+	var subdirWalks sync.WaitGroup
+	for position, name := range subdirNames {
+		childPath := joinRel(relDir, name)
+		select {
+		case s.walkSlots <- struct{}{}:
+			subdirWalks.Go(func() {
+				defer func() { <-s.walkSlots }()
+				subdirHasMarkdown[position] = s.walkDir(childPath, patterns)
+			})
+		default:
+			subdirHasMarkdown[position] = s.walkDir(childPath, patterns)
+		}
+	}
+	subdirWalks.Wait()
+	for position, name := range subdirNames {
+		if subdirHasMarkdown[position] {
+			children = append(children, Entry{Name: name, Path: joinRel(relDir, name), Type: EntryDir})
+		}
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if len(localPatterns) > 0 {
+		s.ignorePatternsByDir[relDir] = localPatterns
 	}
 	if len(children) == 0 {
 		return false
 	}
 	slices.SortFunc(children, compareEntries)
 	s.childrenByDir[relDir] = children
+	s.filePaths = append(s.filePaths, localFilePaths...)
 	return true
+}
+
+// allIgnorePatterns returns every .gitignore pattern with each directory's
+// patterns after its ancestors'. The matcher lets later patterns win, which
+// is how a nested !rule overrides a parent's rule; directories are walked
+// concurrently, so that order has to be restored here. Sorting directory
+// paths lexically is enough because a directory's path sorts before every
+// path inside it.
+func (s *scanner) allIgnorePatterns() []gitignore.Pattern {
+	var patterns []gitignore.Pattern
+	for _, dirPath := range slices.Sorted(maps.Keys(s.ignorePatternsByDir)) {
+		patterns = append(patterns, s.ignorePatternsByDir[dirPath]...)
+	}
+	return patterns
 }
 
 // readIgnoreFile parses relDir's .gitignore, if it has one. A .gitignore that

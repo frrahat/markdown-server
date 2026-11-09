@@ -1,6 +1,9 @@
 package index
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
 func TestScanHonoursGitignore(t *testing.T) {
 	root := buildTree(t, []string{
@@ -73,5 +76,35 @@ func TestIsServableWithoutGitignore(t *testing.T) {
 	}
 	if idx.IsServable(".github/.secret") {
 		t.Error("IsServable accepted a dotfile")
+	}
+}
+
+// Many sibling .gitignore files make the test fail on almost every run if the
+// pattern order depends on which concurrent walk finishes first.
+func TestNestedNegationOverridesAncestorRule(t *testing.T) {
+	const subdirCount = 20
+	var paths []string
+	for i := range subdirCount {
+		paths = append(paths, fmt.Sprintf("area-%02d/notes.md", i))
+	}
+	root := buildTree(t, paths)
+	writeTestFile(t, root, ".gitignore", "secret*.md\n")
+	for i := range subdirCount {
+		writeTestFile(t, root, fmt.Sprintf("area-%02d/.gitignore", i), "!secret-ok.md\n")
+	}
+
+	idx := scanForTest(t, root)
+
+	for i := range subdirCount {
+		dir := fmt.Sprintf("area-%02d", i)
+		if !idx.IsServable(dir + "/secret-ok.md") {
+			t.Errorf("IsServable(%q) = false, want the nested negation to win", dir+"/secret-ok.md")
+		}
+		if idx.IsServable(dir + "/secret.md") {
+			t.Errorf("IsServable(%q) = true, want the root rule to apply", dir+"/secret.md")
+		}
+	}
+	if idx.IsServable("secret-ok.md") {
+		t.Error("IsServable(\"secret-ok.md\") = true, want the nested negation scoped to its directory")
 	}
 }
