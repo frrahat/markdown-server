@@ -1,14 +1,14 @@
 // Fuzzy file filter in the sidebar. Matching runs on the server against the
 // in-memory index (GET /api/files); this module renders the ranked results
 // and handles the keyboard. While the filter has text, the results list
-// replaces the tree.
+// replaces browsePane (the tree and the recent-file sections).
 
 const resultLimit = 100;
 // Short enough to feel instant, long enough to skip requests for keystrokes
 // typed in a burst.
 const debounceMs = 60;
 
-export function installFileFilter({ filterInput, resultsList, summary, treeRoot, fetchJSON, openFile }) {
+export function installFileFilter({ filterInput, resultsList, summary, browsePane, fetchJSON, openFile }) {
   let debounceTimer = 0;
   let inFlight = null;
   let results = [];
@@ -17,7 +17,7 @@ export function installFileFilter({ filterInput, resultsList, summary, treeRoot,
   const isActive = () => filterInput.value.trim() !== "";
 
   function showTree(showIt) {
-    treeRoot.hidden = !showIt;
+    browsePane.hidden = !showIt;
     resultsList.hidden = showIt;
     summary.hidden = showIt;
     filterInput.setAttribute("aria-expanded", String(!showIt));

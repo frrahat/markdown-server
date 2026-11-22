@@ -179,6 +179,49 @@ button[aria-pressed="true"] {
 [data-type="dir"][aria-expanded="true"] > .tree-row > .twisty::before { content: "▾"; }
 [data-type="dir"] > .tree-row > .tree-label { font-weight: 500; }
 
+/* ---- Recent files ---- */
+
+.recent-section {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 4px;
+  margin-bottom: 4px;
+}
+.recent-section[hidden] { display: none; }
+.recent-title {
+  margin: 0;
+  padding: 6px 12px 2px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.recent-title span { text-transform: none; font-weight: 400; }
+.recent-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.recent-list a {
+  display: flex;
+  flex-direction: column;
+  padding: 3px 12px;
+  color: inherit;
+  text-decoration: none;
+  font-size: 14px;
+  line-height: 18px;
+}
+.recent-list a:hover { background: var(--hover-bg); }
+.recent-list a[aria-current="page"] { background: var(--selected-bg); }
+.recent-list a:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--accent); }
+.recent-list .result-dir {
+  color: var(--muted);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ---- Rendered markdown ---- */
 
 .markdown-body {

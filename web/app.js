@@ -1,4 +1,5 @@
 import { installFileFilter } from "/filter.js";
+import { installRecentFiles } from "/recent.js";
 import { installVimKeys } from "/vim.js";
 
 const treeRoot = document.getElementById("tree");
@@ -272,7 +273,8 @@ async function refreshTree() {
   showStatus("Refreshing…");
   const expandedPaths = [...treeRoot.querySelectorAll('[aria-expanded="true"]')]
     .map((item) => item.dataset.path);
-  const sidebarScroll = treeRoot.parentElement.scrollTop;
+  const sidebar = treeRoot.closest(".sidebar");
+  const sidebarScroll = sidebar.scrollTop;
   try {
     const result = await fetchJSON("/api/refresh", { method: "POST" });
     childrenCache.clear();
@@ -292,8 +294,9 @@ async function refreshTree() {
     }
 
     if (currentDocPath) selectTreeItem(treeItemsByPath.get(currentDocPath));
-    treeRoot.parentElement.scrollTop = sidebarScroll;
+    sidebar.scrollTop = sidebarScroll;
     fileFilter.refresh();
+    await recentFiles.refreshCreated();
     showStatus(`Indexed ${result.files} files in ${result.durationMs} ms`);
   } catch (error) {
     showStatus(`Refresh failed: ${error.message}`, true);
@@ -370,6 +373,7 @@ async function openDoc(path, anchor, { keepScroll = false } = {}) {
     message.textContent = `Could not open ${path}: ${error.message}`;
     docArticle.replaceChildren(message);
     showStatus("");
+    recentFiles.docFailed(path);
     return;
   }
   if (requestId !== latestDocRequest) return;
@@ -381,6 +385,7 @@ async function openDoc(path, anchor, { keepScroll = false } = {}) {
   docPathLabel.textContent = path;
   document.title = `${path.split("/").pop()} — mdserver`;
   showStatus("");
+  recentFiles.docOpened(path);
 
   await showCurrentDoc();
   if (keepScroll) {
@@ -602,12 +607,22 @@ const fileFilter = installFileFilter({
   filterInput: document.getElementById("file-filter"),
   resultsList: document.getElementById("filter-results"),
   summary: document.getElementById("filter-summary"),
-  treeRoot,
+  browsePane: document.getElementById("browse"),
   fetchJSON,
   openFile(path) {
     navigateTo(path);
     contentPane.focus({ preventScroll: true });
   },
+});
+
+const recentFiles = installRecentFiles({
+  openedSection: document.getElementById("recently-opened"),
+  openedList: document.getElementById("recently-opened-list"),
+  createdSection: document.getElementById("recently-created"),
+  createdList: document.getElementById("recently-created-list"),
+  createdCount: document.getElementById("recently-created-count"),
+  routeFor,
+  fetchJSON,
 });
 
 const vim = installVimKeys({
@@ -658,5 +673,5 @@ function showStatus(message, isError = false) {
   statusLabel.classList.toggle("error", isError);
 }
 
-await loadRoot();
+await Promise.all([loadRoot(), recentFiles.refreshCreated()]);
 handleRoute();

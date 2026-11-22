@@ -3,6 +3,8 @@
 package index
 
 import (
+	"cmp"
+	"slices"
 	"strings"
 	"time"
 
@@ -35,8 +37,32 @@ type Index struct {
 	ScanDuration time.Duration
 
 	childrenByDir map[string][]Entry
-	filePaths     []string
-	ignoreMatcher gitignore.Matcher
+	// createdAtByPath holds each file's birth time where the platform
+	// records one, and its modification time elsewhere.
+	createdAtByPath map[string]time.Time
+	filePaths       []string
+	ignoreMatcher   gitignore.Matcher
+}
+
+// CreatedFile is an indexed file with the time it was created.
+type CreatedFile struct {
+	Path      string    `json:"path"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+// FilesCreatedSince returns the files created at or after cutoff, newest
+// first.
+func (idx *Index) FilesCreatedSince(cutoff time.Time) []CreatedFile {
+	files := []CreatedFile{}
+	for filePath, createdAt := range idx.createdAtByPath {
+		if !createdAt.Before(cutoff) {
+			files = append(files, CreatedFile{Path: filePath, CreatedAt: createdAt})
+		}
+	}
+	slices.SortFunc(files, func(a, b CreatedFile) int {
+		return cmp.Or(b.CreatedAt.Compare(a.CreatedAt), strings.Compare(a.Path, b.Path))
+	})
+	return files
 }
 
 // Children returns the direct children of dirPath ("" is the root).

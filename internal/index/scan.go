@@ -50,6 +50,7 @@ func Scan(root string, opts Options) (*Index, error) {
 		logger:              cmp.Or(opts.Logger, slog.Default()),
 		walkSlots:           make(chan struct{}, maxConcurrentDirReads-1),
 		childrenByDir:       make(map[string][]Entry),
+		createdAtByPath:     make(map[string]time.Time),
 		ignorePatternsByDir: make(map[string][]gitignore.Pattern),
 	}
 	scanner.walkDir("", nil)
@@ -59,13 +60,14 @@ func Scan(root string, opts Options) (*Index, error) {
 		scanner.childrenByDir[""] = []Entry{}
 	}
 	return &Index{
-		IndexedAt:     time.Now(),
-		ScanDuration:  time.Since(scanStart),
-		FileCount:     len(scanner.filePaths),
-		DirCount:      len(scanner.childrenByDir) - 1,
-		childrenByDir: scanner.childrenByDir,
-		filePaths:     scanner.sortedFilePaths(),
-		ignoreMatcher: gitignore.NewMatcher(scanner.allIgnorePatterns()),
+		IndexedAt:       time.Now(),
+		ScanDuration:    time.Since(scanStart),
+		FileCount:       len(scanner.filePaths),
+		DirCount:        len(scanner.childrenByDir) - 1,
+		childrenByDir:   scanner.childrenByDir,
+		createdAtByPath: scanner.createdAtByPath,
+		filePaths:       scanner.sortedFilePaths(),
+		ignoreMatcher:   gitignore.NewMatcher(scanner.allIgnorePatterns()),
 	}, nil
 }
 
@@ -78,9 +80,10 @@ type scanner struct {
 	// once.
 	walkSlots chan struct{}
 
-	mu            sync.Mutex // guards the fields below
-	childrenByDir map[string][]Entry
-	filePaths     []string
+	mu              sync.Mutex // guards the fields below
+	childrenByDir   map[string][]Entry
+	createdAtByPath map[string]time.Time
+	filePaths       []string
 	// ignorePatternsByDir holds each directory's .gitignore patterns, for
 	// Index.IsServable.
 	ignorePatternsByDir map[string][]gitignore.Pattern
@@ -113,6 +116,7 @@ func (s *scanner) walkDir(relDir string, ancestorPatterns []gitignore.Pattern) b
 
 	var children []Entry
 	var localFilePaths []string
+	localCreatedAt := make(map[string]time.Time)
 	var subdirNames []string
 	for _, dirEntry := range dirEntries {
 		name := dirEntry.Name()
@@ -134,6 +138,12 @@ func (s *scanner) walkDir(relDir string, ancestorPatterns []gitignore.Pattern) b
 			childPath := joinRel(relDir, name)
 			children = append(children, Entry{Name: name, Path: childPath, Type: EntryFile})
 			localFilePaths = append(localFilePaths, childPath)
+			// dirEntry.Info stats the file again, so it fails for a file
+			// deleted since ReadDir. That file stays listed but never shows
+			// as recently created.
+			if info, err := dirEntry.Info(); err == nil {
+				localCreatedAt[childPath] = fileCreatedAt(info)
+			}
 		}
 	}
 
@@ -172,6 +182,7 @@ func (s *scanner) walkDir(relDir string, ancestorPatterns []gitignore.Pattern) b
 	slices.SortFunc(children, compareEntries)
 	s.childrenByDir[relDir] = children
 	s.filePaths = append(s.filePaths, localFilePaths...)
+	maps.Copy(s.createdAtByPath, localCreatedAt)
 	return true
 }
 

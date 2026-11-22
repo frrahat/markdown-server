@@ -23,6 +23,7 @@ func TestStaticAssets(t *testing.T) {
 		{"/theme.js", "text/javascript; charset=utf-8", "applyTheme"},
 		{"/vim.js", "text/javascript; charset=utf-8", "installVimKeys"},
 		{"/filter.js", "text/javascript; charset=utf-8", "installFileFilter"},
+		{"/recent.js", "text/javascript; charset=utf-8", "installRecentFiles"},
 		{"/vendor/mermaid.min.js", "text/javascript; charset=utf-8", "mermaid"},
 		{"/favicon.svg", "image/svg+xml", "<svg"},
 	}
