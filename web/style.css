@@ -131,10 +131,32 @@ button[aria-pressed="true"] {
   min-height: 0;
 }
 
+/* The filter box sits on top, then either the filter results or the tree,
+   with the recent-file panel pinned at the bottom. Only the tree and the
+   results scroll, so the panel stays in view however long the tree gets. */
 .sidebar {
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
   border-right: 1px solid var(--border);
-  padding: 0 0 8px;
+}
+.browse {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.browse[hidden] { display: none; }
+.tree {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.filter-results {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
 }
 
 .content {
@@ -181,11 +203,16 @@ button[aria-pressed="true"] {
 
 /* ---- Recent files ---- */
 
-.recent-section {
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 4px;
-  margin-bottom: 4px;
+/* Capped so a full panel can't squeeze the tree to nothing. */
+.recent-panel {
+  flex: none;
+  max-height: 45%;
+  overflow: auto;
+  border-top: 1px solid var(--border);
 }
+.recent-panel:not(:has(.recent-section:not([hidden]))) { display: none; }
+.recent-section { padding-bottom: 4px; }
+.recent-section + .recent-section { border-top: 1px solid var(--border); }
 .recent-section[hidden] { display: none; }
 .recent-title {
   margin: 0;

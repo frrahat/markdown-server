@@ -8,27 +8,27 @@ import (
 )
 
 const (
-	recentlyCreatedWindow = 5 * time.Minute
-	// A checkout or bulk copy can create hundreds of files at once; the
+	recentlyUpdatedWindow = 5 * time.Minute
+	// A checkout or bulk copy can touch hundreds of files at once; the
 	// sidebar only has room for a handful.
-	maxRecentlyCreated = 20
+	maxRecentlyUpdated = 20
 )
 
 type recentFilesResponse struct {
-	Total      int                 `json:"total"`
-	Files      []index.CreatedFile `json:"files"`
-	Generation uint64              `json:"generation"`
+	Total      int                  `json:"total"`
+	Files      []index.ModifiedFile `json:"files"`
+	Generation uint64               `json:"generation"`
 }
 
-// handleRecentFiles lists files created within recentlyCreatedWindow of now,
-// newest first. Creation times come from the last scan, so a file created
-// after it appears only once the tree is refreshed.
+// handleRecentFiles lists files modified within recentlyUpdatedWindow of now,
+// newest first. Modification times come from the last scan, so a file
+// changed after it appears only once the tree is refreshed.
 func (s *Server) handleRecentFiles(w http.ResponseWriter, r *http.Request) {
 	idx := s.indexHolder.Current()
-	files := idx.FilesCreatedSince(time.Now().Add(-recentlyCreatedWindow))
+	files := idx.FilesModifiedSince(time.Now().Add(-recentlyUpdatedWindow))
 	writeJSON(w, http.StatusOK, recentFilesResponse{
 		Total:      len(files),
-		Files:      files[:min(len(files), maxRecentlyCreated)],
+		Files:      files[:min(len(files), maxRecentlyUpdated)],
 		Generation: idx.Generation,
 	})
 }

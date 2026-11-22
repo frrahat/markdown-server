@@ -75,12 +75,11 @@ bin/mdserver [flags] <root-dir>
   match. Arrows or `Ctrl-n`/`Ctrl-p` move, Enter opens, Esc returns to the
   tree. Matching runs on the server, so the browser never downloads the full
   file list.
-- **Recent files** above the tree. *Recently opened* lists the last 5 files
-  you opened, newest first, kept in the browser's localStorage. *Recently
-  created* lists files created in the 5 minutes before the tree was last
-  loaded or refreshed; it is hidden when there are none. Creation time is the
-  file's birth time on macOS, Windows and the BSDs, and its modification time
-  elsewhere, so on Linux a recently edited file also counts.
+- **Recent files** pinned to the bottom of the sidebar, below the tree.
+  *Recently opened* lists the last 5 files you opened, newest first, kept in
+  the browser's localStorage. *Recently updated* lists files modified in the
+  5 minutes before the tree was last loaded or refreshed. Each section is
+  hidden when it is empty.
 - **Keyboard navigation** in the tree: arrow keys or `j`/`k`/`h`/`l`,
   Home/End, Enter.
 - **Line numbers** in code blocks. They're drawn by CSS, so copying code never
@@ -119,7 +118,7 @@ you cloned but didn't write.
 | `GET` | `/api/tree?path=<dir>` | Direct children of a folder (`""` is the root) |
 | `GET` | `/api/doc?path=<file>` | Rendered HTML and markdown source for a file, read fresh from disk |
 | `GET` | `/api/files?q=<query>&limit=<n>` | Fuzzy-matched file paths with matched character positions (default 50, max 200) |
-| `GET` | `/api/recent-files` | Files created in the 5 minutes before now, per the last scan, newest first (at most 20, plus the total) |
+| `GET` | `/api/recent-files` | Files modified in the 5 minutes before now, per the last scan, newest first (at most 20, plus the total) |
 | `POST` | `/api/refresh` | Rescans the directory; returns file/dir counts and duration |
 | `GET` | `/raw/<path>` | A file under the root, such as an image a document references |
 

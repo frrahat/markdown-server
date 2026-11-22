@@ -44,13 +44,13 @@ func TestRecentFiles(t *testing.T) {
 
 func TestRecentFilesCapsResults(t *testing.T) {
 	files := map[string]string{}
-	for fileNumber := range maxRecentlyCreated + 5 {
+	for fileNumber := range maxRecentlyUpdated + 5 {
 		files[fmt.Sprintf("bulk/%02d.md", fileNumber)] = "# x\n"
 	}
 	srv := newTestServer(t, files)
 	var response recentFilesResponse
 	doGet(t, srv, "/api/recent-files", http.StatusOK, &response)
-	if response.Total != maxRecentlyCreated+5 || len(response.Files) != maxRecentlyCreated {
+	if response.Total != maxRecentlyUpdated+5 || len(response.Files) != maxRecentlyUpdated {
 		t.Errorf("total %d, files %d", response.Total, len(response.Files))
 	}
 }

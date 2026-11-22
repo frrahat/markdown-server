@@ -206,7 +206,7 @@ treeRoot.addEventListener("keydown", async (event) => {
   const key = vimTreeKeys[event.key] ?? event.key;
   if (!item || event.altKey || event.ctrlKey || event.metaKey || !treeKeys.has(key)) return;
   // Before any await: once the handler yields, the browser has already
-  // applied the default action (scrolling the sidebar).
+  // applied the default action (scrolling the tree).
   event.preventDefault();
   const isDir = item.dataset.type === "dir";
   const isExpanded = item.getAttribute("aria-expanded") === "true";
@@ -273,8 +273,7 @@ async function refreshTree() {
   showStatus("Refreshing…");
   const expandedPaths = [...treeRoot.querySelectorAll('[aria-expanded="true"]')]
     .map((item) => item.dataset.path);
-  const sidebar = treeRoot.closest(".sidebar");
-  const sidebarScroll = sidebar.scrollTop;
+  const treeScroll = treeRoot.scrollTop;
   try {
     const result = await fetchJSON("/api/refresh", { method: "POST" });
     childrenCache.clear();
@@ -294,9 +293,9 @@ async function refreshTree() {
     }
 
     if (currentDocPath) selectTreeItem(treeItemsByPath.get(currentDocPath));
-    sidebar.scrollTop = sidebarScroll;
+    treeRoot.scrollTop = treeScroll;
     fileFilter.refresh();
-    await recentFiles.refreshCreated();
+    await recentFiles.refreshUpdated();
     showStatus(`Indexed ${result.files} files in ${result.durationMs} ms`);
   } catch (error) {
     showStatus(`Refresh failed: ${error.message}`, true);
@@ -618,9 +617,9 @@ const fileFilter = installFileFilter({
 const recentFiles = installRecentFiles({
   openedSection: document.getElementById("recently-opened"),
   openedList: document.getElementById("recently-opened-list"),
-  createdSection: document.getElementById("recently-created"),
-  createdList: document.getElementById("recently-created-list"),
-  createdCount: document.getElementById("recently-created-count"),
+  updatedSection: document.getElementById("recently-updated"),
+  updatedList: document.getElementById("recently-updated-list"),
+  updatedCount: document.getElementById("recently-updated-count"),
   routeFor,
   fetchJSON,
 });
@@ -673,5 +672,5 @@ function showStatus(message, isError = false) {
   statusLabel.classList.toggle("error", isError);
 }
 
-await Promise.all([loadRoot(), recentFiles.refreshCreated()]);
+await Promise.all([loadRoot(), recentFiles.refreshUpdated()]);
 handleRoute();

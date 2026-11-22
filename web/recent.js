@@ -1,13 +1,13 @@
-// "Recently opened" and "Recently created" sidebar sections. Recently opened
+// "Recently opened" and "Recently updated" sidebar sections. Recently opened
 // lives in localStorage, so it survives reloads and is shared by every tab
-// on this origin. Recently created comes from the server's last scan, so it
+// on this origin. Recently updated comes from the server's last scan, so it
 // changes only when the tree is refreshed. Each section is hidden while it
 // has nothing to show.
 
 const maxRecentlyOpened = 5;
 const recentlyOpenedStorageKey = "mdserver-recently-opened";
 
-export function installRecentFiles({ openedSection, openedList, createdSection, createdList, createdCount, routeFor, fetchJSON }) {
+export function installRecentFiles({ openedSection, openedList, updatedSection, updatedList, updatedCount, routeFor, fetchJSON }) {
   let currentPath = null;
 
   function loadOpenedPaths() {
@@ -77,7 +77,7 @@ export function installRecentFiles({ openedSection, openedList, createdSection, 
       const paths = [path, ...loadOpenedPaths().filter((openedPath) => openedPath !== path)];
       saveOpenedPaths(paths.slice(0, maxRecentlyOpened));
       renderOpened();
-      markCurrent(createdList);
+      markCurrent(updatedList);
     },
 
     // Drops a path that failed to open. Otherwise a deleted or renamed file
@@ -86,10 +86,10 @@ export function installRecentFiles({ openedSection, openedList, createdSection, 
       currentPath = null;
       saveOpenedPaths(loadOpenedPaths().filter((openedPath) => openedPath !== path));
       renderOpened();
-      markCurrent(createdList);
+      markCurrent(updatedList);
     },
 
-    async refreshCreated() {
+    async refreshUpdated() {
       let response;
       try {
         response = await fetchJSON("/api/recent-files");
@@ -98,13 +98,13 @@ export function installRecentFiles({ openedSection, openedList, createdSection, 
         // failure here isn't worth a status message.
         return;
       }
-      createdList.replaceChildren(...response.files.map((file) =>
-        createFileLink(file.path, `Created ${new Date(file.createdAt).toLocaleTimeString()}`)));
-      createdCount.textContent = response.total > response.files.length
+      updatedList.replaceChildren(...response.files.map((file) =>
+        createFileLink(file.path, `Modified ${new Date(file.modifiedAt).toLocaleTimeString()}`)));
+      updatedCount.textContent = response.total > response.files.length
         ? `(${response.files.length} of ${response.total})`
         : `(${response.total})`;
-      createdSection.hidden = response.files.length === 0;
-      markCurrent(createdList);
+      updatedSection.hidden = response.files.length === 0;
+      markCurrent(updatedList);
     },
   };
 }

@@ -36,31 +36,29 @@ type Index struct {
 	DirCount     int
 	ScanDuration time.Duration
 
-	childrenByDir map[string][]Entry
-	// createdAtByPath holds each file's birth time where the platform
-	// records one, and its modification time elsewhere.
-	createdAtByPath map[string]time.Time
-	filePaths       []string
-	ignoreMatcher   gitignore.Matcher
+	childrenByDir    map[string][]Entry
+	modifiedAtByPath map[string]time.Time
+	filePaths        []string
+	ignoreMatcher    gitignore.Matcher
 }
 
-// CreatedFile is an indexed file with the time it was created.
-type CreatedFile struct {
-	Path      string    `json:"path"`
-	CreatedAt time.Time `json:"createdAt"`
+// ModifiedFile is an indexed file with its modification time as of the scan.
+type ModifiedFile struct {
+	Path       string    `json:"path"`
+	ModifiedAt time.Time `json:"modifiedAt"`
 }
 
-// FilesCreatedSince returns the files created at or after cutoff, newest
+// FilesModifiedSince returns the files modified at or after cutoff, newest
 // first.
-func (idx *Index) FilesCreatedSince(cutoff time.Time) []CreatedFile {
-	files := []CreatedFile{}
-	for filePath, createdAt := range idx.createdAtByPath {
-		if !createdAt.Before(cutoff) {
-			files = append(files, CreatedFile{Path: filePath, CreatedAt: createdAt})
+func (idx *Index) FilesModifiedSince(cutoff time.Time) []ModifiedFile {
+	files := []ModifiedFile{}
+	for filePath, modifiedAt := range idx.modifiedAtByPath {
+		if !modifiedAt.Before(cutoff) {
+			files = append(files, ModifiedFile{Path: filePath, ModifiedAt: modifiedAt})
 		}
 	}
-	slices.SortFunc(files, func(a, b CreatedFile) int {
-		return cmp.Or(b.CreatedAt.Compare(a.CreatedAt), strings.Compare(a.Path, b.Path))
+	slices.SortFunc(files, func(a, b ModifiedFile) int {
+		return cmp.Or(b.ModifiedAt.Compare(a.ModifiedAt), strings.Compare(a.Path, b.Path))
 	})
 	return files
 }

@@ -92,7 +92,7 @@ paths get `400`, and paths that are missing or not indexed get `404`.
 | POST | `/api/refresh` | Rescan and swap the index | `{"generation","indexedAt","files","dirs","durationMs"}` |
 | GET | `/api/doc?path=<file>` | Read from disk **on every request**, render | `{"path","html","source","modTime","size"}` |
 | GET | `/api/files?q=<query>&limit=<n>` | Fuzzy-filter all indexed file paths (limit default 50, max 200) | `{"query","total","files":[{"path","positions"}],"generation"}` |
-| GET | `/api/recent-files` | Files whose creation time (from the last scan) is within 5 minutes of now, newest first, at most 20 | `{"total","files":[{"path","createdAt"}],"generation"}` |
+| GET | `/api/recent-files` | Files whose modification time (from the last scan) is within 5 minutes of now, newest first, at most 20 | `{"total","files":[{"path","modifiedAt"}],"generation"}` |
 | GET | `/raw/<path>` | Serve a file under the root, for relative images | file bytes with a sniffed Content-Type |
 
 - `/api/doc` accepts only files that are in the current index. Files over 5 MB
@@ -157,14 +157,14 @@ paths get `400`, and paths that are missing or not indexed get `404`.
   the filter has text, ranked results replace the tree; arrows or
   `Ctrl-n`/`Ctrl-p` move, Enter opens (running any pending search first), Esc
   clears. About 6–13 ms per query over 50k paths.
-- **Recent files:** two sections above the tree, each hidden when empty.
-  *Recently opened* holds the last 5 opened paths in localStorage (shared by
-  tabs, dropped when a file fails to open). *Recently created* is fetched from
-  `/api/recent-files` on load and after each refresh. The scan records a
-  creation time per markdown file: birth time on darwin/freebsd/netbsd/windows,
-  modification time elsewhere. That costs one lstat per markdown file, about
-  6% of scan time in the benchmark. While the filter has text, both sections
-  are hidden along with the tree.
+- **Recent files:** a panel pinned to the bottom of the sidebar, below the
+  tree, which scrolls on its own above it. Two sections, each hidden when
+  empty. *Recently opened* holds the last 5 opened paths in localStorage
+  (shared by tabs, dropped when a file fails to open). *Recently updated* is
+  fetched from `/api/recent-files` on load and after each refresh; the scan
+  records each markdown file's modification time, which costs one lstat per
+  file, about 6% of scan time in the benchmark. While the filter has text,
+  the panel is hidden along with the tree.
 - **Vim keys** (when focus isn't in a text field): `j`/`k` scroll 60px,
   `d`/`u` and `Ctrl-d`/`Ctrl-u` half a page, `gg`/`G` top/bottom, `?` help.
   In the tree, `j`/`k`/`h`/`l` act as arrow keys. Opening a file with the mouse

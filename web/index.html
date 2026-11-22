@@ -43,16 +43,18 @@
       <p id="filter-summary" class="filter-summary" aria-live="polite" hidden></p>
       <ul id="filter-results" class="filter-results" role="listbox" aria-label="Matching files" hidden></ul>
       <!-- Hidden as a whole while the filter shows its results. -->
-      <div id="browse">
-        <section id="recently-opened" class="recent-section" aria-labelledby="recently-opened-title" hidden>
-          <h2 id="recently-opened-title" class="recent-title">Recently opened</h2>
-          <ul id="recently-opened-list" class="recent-list"></ul>
-        </section>
-        <section id="recently-created" class="recent-section" aria-labelledby="recently-created-title" hidden>
-          <h2 id="recently-created-title" class="recent-title" title="Files created in the 5 minutes before the tree was last loaded or refreshed">Recently created <span id="recently-created-count"></span></h2>
-          <ul id="recently-created-list" class="recent-list"></ul>
-        </section>
+      <div id="browse" class="browse">
         <ul id="tree" class="tree" role="tree" aria-label="Markdown files"></ul>
+        <div class="recent-panel">
+          <section id="recently-opened" class="recent-section" aria-labelledby="recently-opened-title" hidden>
+            <h2 id="recently-opened-title" class="recent-title">Recently opened</h2>
+            <ul id="recently-opened-list" class="recent-list"></ul>
+          </section>
+          <section id="recently-updated" class="recent-section" aria-labelledby="recently-updated-title" hidden>
+            <h2 id="recently-updated-title" class="recent-title" title="Files modified in the 5 minutes before the tree was last loaded or refreshed">Recently updated <span id="recently-updated-count"></span></h2>
+            <ul id="recently-updated-list" class="recent-list"></ul>
+          </section>
+        </div>
       </div>
     </nav>
     <!-- Focusable so keyboard scrolling (vim keys, arrows, Page Down) targets
